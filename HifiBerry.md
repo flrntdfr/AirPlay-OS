@@ -2,7 +2,7 @@
 
 Line-level streaming source built on [HiFiBerry OS Next Generation (hbosng)](https://github.com/hifiberry/hifiberry-os/tree/hbosng). This Raspberry Pi runs Debian 13 with HiFiBerry packages on top of Raspberry Pi OS Lite. PipeWire routes multiple audio sources through DSP filter chains to a HiFiBerry **DAC+** HAT, whose RCA line output feeds an external amplifier / powered speakers.
 
-> Sibling device: [`Ampberry.md`](./Ampberry.md) — a Pi 3 + DAC+/**Amp2** powered speaker. Same software stack; the main differences here are **Pi 4**, a **DAC+ (line-out, no built-in amp)**, **Ethernet-only** (Wi‑Fi and Bluetooth radios disabled), and HAT detection via **EEPROM auto-read** rather than an explicit overlay.
+> Sibling device: [`Ampberry.md`](./Ampberry.md) — a Pi 3 + DAC+/**Amp2** powered speaker. Since 2026-10-08 it runs a **different stack** (Raspberry Pi OS Lite + a Nix flake, AirPlay 2 only); this device is the one still on hbosng. The hardware differences here are **Pi 4**, a **DAC+ (line-out, no built-in amp)**, **Ethernet-only** (Wi‑Fi and Bluetooth radios disabled), and HAT detection via **EEPROM auto-read** rather than an explicit overlay.
 
 ## Connect
 
@@ -31,11 +31,11 @@ ssh pi@192.168.178.244        # Ethernet IP (DHCP)
 |-------|-------------------|
 | OS | Debian GNU/Linux 13 (trixie) |
 | Kernel | `6.18.34+rpt-rpi-v8` |
-| HiFiBerry OS | `hbos-full` 0.9 |
+| HiFiBerry OS | `hbos-full` 0.11 |
 | Audio daemon | PipeWire + WirePlumber (user services) |
-| Control plane | `hifiberry-audiocontrol` 0.7.13 |
-| Web UI | `hifiberry-webui` 0.19.11 via nginx |
-| Config | `hifiberry-configurator` 2.13.16 |
+| Control plane | `hifiberry-audiocontrol` 0.8.3 |
+| Web UI | `hifiberry-webui` 0.20.3 via nginx |
+| Config | `hifiberry-configurator` 2.14.4 |
 
 **Primary use case:** streaming (Spotify Connect, AirPlay, Roon, LMS). Bluetooth is disabled on this unit.
 
@@ -48,7 +48,7 @@ Players (MPD, Spotify, AirPlay, RAAT, LMS)
         ↓
    PipeWire / WirePlumber
         ↓
-Filter chains: Speaker EQ 2x2 → RIAA Phono Preamp (optional)
+Filter chain: Speaker EQ 2x2
         ↓
    HiFiBerry DAC+ (hw:0)  →  RCA line out
         ↓
@@ -66,14 +66,22 @@ Filter chains: Speaker EQ 2x2 → RIAA Phono Preamp (optional)
 | AirPlay | `hifiberry-shairport` | `shairport.service` (user) |
 | Roon RAAT | `hifiberry-raat` | Pipes under `/var/lib/raat/` |
 | Logitech Media Server | `hifiberry-squeezelite` | Auto-discovery enabled |
+| Analog input | `hifiberry-analog-recognition` | New in hbos 0.11. Song-recognition on analog input; `analog-recognition.service` (user) **self-skips via `exec-condition`** — no ADC on this line-out DAC+, so it stays inactive by design |
+| sendspin | `hifiberry-sendspin` | New in hbos 0.11 — registers a `sendspin` player in AudioControl |
 | ~~Bluetooth~~ | `hifiberry-bluetooth` | **Disabled** — radio off, services off, `enable: false` in audiocontrol.json |
+
+> Also new in hbos 0.11: `hifiberry-auth` (0.1.2) and `hifiberry-input-processor` (1.3.1) support
+> components pulled in with the `hbos-full` upgrade.
 
 ### PipeWire filter chains
 
-Two LADSPA filter chains are active in `/etc/pipewire/pipewire.conf.d/`:
-
 - **`90-speakereq.conf`** — 2×2 stereo speaker EQ (`speakereq2x2.so`). This is the **default sink**. Runtime settings in `/home/pi/.state/pipewire-api/settings.json`.
-- **`90-riaa.conf`** — RIAA phono preamp (`riaa.so`) for vinyl input. Settings also in `settings.json` under the `riaa` key. **Not** in the streaming path (it has no source feeding it).
+
+> **RIAA filter removed (2026-07-24, hbos 0.11).** Earlier versions shipped a `90-riaa.conf` RIAA
+> phono-preamp filter (`riaa.so`, from the `ladspa-riaa` package). The `hbos-full` 0.9 → 0.11
+> upgrade **retired it**: `hifiberry-pipewire-configs` 1.0.10 dropped `90-riaa.conf` and
+> `ladspa-riaa` was removed. It was never in the streaming path here (no source fed it). If vinyl
+> input is ever needed, the RIAA EQ would have to be re-added another way.
 
 Headless PipeWire overrides disable X11/session-bus modules in `99-hifiberry-headless.conf`.
 
@@ -303,8 +311,8 @@ EQ notes:
 
 The **Speaker EQ 2x2** PipeWire filter (`90-speakereq.conf`) is the right place to tune frequency
 response. Settings persist in `/home/pi/.state/pipewire-api/settings.json` and are exposed via
-`/api/pipewire/`. The **RIAA phono preamp** filter is installed but secondary; leave it disabled
-unless vinyl input is added later.
+`/api/pipewire/`. (The RIAA phono-preamp filter was removed in the hbos 0.11 upgrade — see
+"PipeWire filter chains" above.)
 
 ## Open questions
 

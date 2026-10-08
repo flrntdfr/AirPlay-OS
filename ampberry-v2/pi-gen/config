@@ -1,0 +1,24 @@
+# pi-gen configuration for the Ampberry image (sourced by pi-gen's build.sh).
+# Copied to build/pi-gen/config by tools/build-image.sh, which appends the secret-bearing
+# lines (FIRST_USER_PASS) from secrets.env. Keep this file free of secrets.
+#
+# Branding: the image file is <date>-Ampberry-lite.img.xz; the SBOM source name is
+# "Ampberry-lite"; /etc/ampberry-release, motd and issue carry the maker.
+IMG_NAME="Ampberry"
+RELEASE="trixie"
+TARGET_HOSTNAME="ampberry"
+LOCALE_DEFAULT="en_US.UTF-8"
+TIMEZONE_DEFAULT="Europe/Berlin"
+KEYBOARD_KEYMAP="de"
+KEYBOARD_LAYOUT="German"
+WPA_COUNTRY="DE"
+FIRST_USER_NAME="pi"
+# cloud-init manages the pi user (keys, password hash) on first boot; pi-gen's own
+# first-boot user rename is disabled so the account name is stable.
+DISABLE_FIRST_BOOT_USER_RENAME=1
+ENABLE_SSH=1
+PUBKEY_ONLY_SSH=1
+ENABLE_CLOUD_INIT=1
+DEPLOY_COMPRESSION="xz"
+COMPRESSION_LEVEL=6
+STAGE_LIST="stage0 stage1 stage2 stage-ampberry"

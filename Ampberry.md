@@ -1,230 +1,163 @@
 # Ampberry
 
-Powered speaker built on [HiFiBerry OS Next Generation (hbosng)](https://github.com/hifiberry/hifiberry-os/tree/hbosng). This Raspberry Pi runs Debian 13 with HiFiBerry packages on top of Raspberry Pi OS Lite. PipeWire routes multiple audio sources through DSP filter chains to a HiFiBerry DAC+/Amp2 HAT driving the speakers.
+AirPlay 2 speaker built on **Raspberry Pi OS Lite** with everything above the kernel declared in a
+**Nix flake** ([`ampberry-v2/`](./ampberry-v2/README.md)) and applied by
+[system-manager](https://github.com/numtide/system-manager). A Raspberry Pi 3B drives a HiFiBerry
+DAC+/**Amp2** HAT and a custom passive speaker pair. Migrated in place from HiFiBerry OS NG on
+2026-10-08 (see [`OPERATIONS.md`](./OPERATIONS.md)).
 
 ## Connect
 
 ```
-ssh pi@Ampberry.local        # mDNS
+ssh pi@ampberry.local        # mDNS (keys only — no passwords, no root login)
 ssh pi@192.168.178.221       # Wi‑Fi IP
+http://ampberry.local/       # web UI: now playing · settings · Wi‑Fi
 ```
-
 
 ## Hardware
 
 | Component | Details |
 |-----------|---------|
-| Hostname | `Ampberry` (pretty + static) |
-| Board | Raspberry Pi 3 Model B Rev 1.2 (aarch64, ~905 MB RAM) |
+| Hostname | `ampberry` (static), pretty name `Ampberry` |
+| Board | Raspberry Pi 3 Model B Rev 1.2 (aarch64, ~905 MB RAM, zram swap) |
 | HAT | HiFiBerry DAC+/Amp2 (`dtoverlay=hifiberry-dacplus-std`) |
-| Speakers | Custom passive pair (driver/enclosure details — see below) |
-| ALSA card | `hw:0` — `snd_rpi_hifiberry_dacplus` / pcm512x |
-| Network | Wi‑Fi `wlan0` — `192.168.178.221/24` |
-| Storage | 58 GB SD card (~8% used) |
-| User | `pi` (passwordless sudo via `/etc/sudoers.d/010_pi-nopasswd`) |
+| Speakers | Custom passive pair (see "Speaker build") |
+| ALSA card | `hw:0` — `snd_rpi_hifiberry_dacplus` / pcm512x; mixer `Digital` (−103.5…0 dB), `Analogue` |
+| Network | Wi‑Fi `wlan0` — `192.168.178.0/24`; Bluetooth off (`dtoverlay=disable-bt`); `eth0` DHCP as rescue path |
+| Storage | 58 GB SD card |
+| User | `pi` (passwordless sudo, SSH keys only); `ampberry`, `shairport-sync` system users (nologin) |
 
 ## Software stack
 
-| Layer | Version / package |
-|-------|-------------------|
-| OS | Debian GNU/Linux 13 (trixie) |
-| Kernel | `6.18.33+rpt-rpi-v8` |
-| HiFiBerry OS | `hbos-full` 0.9 |
-| Audio daemon | PipeWire + WirePlumber (user services) |
-| Control plane | `hifiberry-audiocontrol` 0.7.12 |
-| Web UI | `hifiberry-webui` 0.19.11 via nginx |
-| Config | `hifiberry-configurator` 2.13.14 |
+| Layer | Source |
+|-------|--------|
+| OS | Raspberry Pi OS Lite — Debian 13 (trixie), kernel `6.18.50+rpt-rpi-v8`, `raspi-firmware` 1.20260915 — **apt**, security auto-updates only |
+| Nix | Determinate installer (multi-user daemon), store on the SD card |
+| Appliance | `ampberry-v2` flake, pinned: nixpkgs 26.05 (`7c8764b`), nixpkgs-unstable (`e7439b6`, audio only), system-manager release-26.05 (`8c7a4b8`) |
+| AirPlay 2 | `shairport-sync` **5.5.2** (ALSA, soxr, Avahi, metadata pipe, `ffmpeg-headless`) + `nqptp` **1.2.8** |
+| Tools | `ampberry` (Ruby 3.4, stdlib only): provisioning, settings, Wi‑Fi onboarding, control API, metadata daemon, redeploy, live log |
+| Web UI | Ruby on Rails 7.2 (railties/actionpack/actionview/propshaft/puma) with **RubyUI** (shadcn/ui port: Phlex 2 + Tailwind 4 + Stimulus via importmap; CSS compiled at Nix build time), user `ampberry`, port 80. Stock shadcn/RubyUI theme (no custom tokens), no gradients. **Home** = the live log full-screen (scrollable history, errors red) with a player bar flush at the bottom: cover thumbnail (tap → full-screen Dialog), title/artist/status, progress line, **play/pause** (sent back to the phone over DACP with the session's `dacp_id` + `active_remote`, see `lib/ampberry/remote.rb`). The bar shows only while something is playing; pausing *from the bar* keeps it (with a play button), pausing or stopping *from the phone* hides it. **Single page:** the header spans the full width (brand left, two tabs right, active tab = subtle glow); **Settings is an overlay** (RubyUI Sheet) that lazy-loads `/settings` into a Turbo Frame — in this order: **AirPlay** card (name, password, Apply), **Sound** card (max volume with −/+ stepper, resampling, output format, Apply — each card is its own form, settings-apply merges), **Restart AirPlay** row alone (restarts nqptp + shairport-sync + avahi, i.e. restart and re‑announce in one), then **Reboot** (normal) and **Redeploy** (red) grouped, each armed by an "Ok" checkbox; labels only, no help text, no group headings; rigid title bar (with a close cross) and rigid stats bar, only the middle scrolls; click outside or the cross closes it, no blur behind it; and the stats bar at the bottom: **build number** (= commit count of the repo, `self.revCount`; `dev` when deployed from a dirty tree), flake revision, store path; the form submits in place (Turbo), actions via fetch. `/settings` still works as a full page. Turbo Drive is off (one page, polling scripts). Wi‑Fi page only via the hotspot captive portal. No maker/user identity is stored or shown anywhere on the device. |
+| Firewall | nftables ruleset generated by the flake (`nix/system/firewall.nix`) |
 
-**Primary use case:** streaming (Spotify Connect, AirPlay, Roon, LMS, Bluetooth).
-
-Upstream docs: [hbosng README](https://github.com/hifiberry/hifiberry-os/blob/hbosng/README.md), [add your own player](https://github.com/hifiberry/hifiberry-os/blob/hbosng/docs/add-your-own-player.md).
+**Use case:** AirPlay 2 only (no Spotify Connect, Roon, LMS, MPD, Bluetooth). Deliberately **no
+volume control in the UI**: the phone sets the level, capped by `volume_max_db`.
 
 ## Architecture
 
 ```
-Players (MPD, Spotify, AirPlay, RAAT, LMS, Bluetooth)
-        ↓
-   PipeWire / WirePlumber
-        ↓
-Filter chains: Speaker EQ 2x2 → RIAA Phono Preamp (optional)
-        ↓
-   HiFiBerry DAC+/Amp2 (hw:0)
-        ↓
-      Speakers
+iPhone/Mac ──AirPlay 2──▶ nqptp (PTP 319/320) + shairport-sync (RTSP 7000) ──ALSA hw:0──▶ Amp2 ──▶ speakers
+                                   │ metadata pipe /run/shairport-sync/metadata
+                                   ▼
+                        ampberry-metadata ──▶ /run/ampberry/now-playing.json + cover
+                                   ▼
+browser ──:80──▶ ampberry-ui (Rails, user ampberry) ──unix socket──▶ ampberry-control@ (root, allow-list)
+                      ▲ backdrop: /var/log/ampberry.log  ◀── ampberry-log (journal aggregator)
 ```
 
-**AudioControl** is the central service. It manages player state, volume, metadata, and exposes a REST API. The **WebUI** is a Vue SPA served by nginx and talks to AudioControl and other backend APIs.
+Everything static is in the flake (packages, units, `/etc` files, firewall, sshd policy, branding).
+Runtime-mutable state is outside Nix: `/etc/shairport-sync.conf` (rendered from
+`/etc/ampberry/defaults.json` ⊕ `/var/lib/ampberry/settings.json`), NetworkManager profiles,
+`/boot/firmware/*`.
 
-### Audio players (configured)
+### Security model
 
-| Player | Package | Notes |
-|--------|---------|-------|
-| MPD | `hifiberry-mpd` | Local files, port 6600, user systemd unit |
-| Spotify Connect | `hifiberry-librespot` | Managed by AudioControl |
-| AirPlay | `hifiberry-shairport` | `shairport.service` (user) |
-| Roon RAAT | `hifiberry-raat` | Pipes under `/var/lib/raat/` |
-| Logitech Media Server | `hifiberry-squeezelite` | Auto-discovery enabled |
-| Bluetooth | `hifiberry-bluetooth` | BlueZ / mpris-proxy |
-
-### PipeWire filter chains
-
-Two LADSPA filter chains are active in `/etc/pipewire/pipewire.conf.d/`:
-
-- **`90-speakereq.conf`** — 2×2 stereo speaker EQ (`speakereq2x2.so`). Runtime settings in `/home/pi/.state/pipewire-api/settings.json`.
-- **`90-riaa.conf`** — RIAA phono preamp (`riaa.so`) for vinyl input. Settings also in `settings.json` under the `riaa` key.
-
-Headless PipeWire overrides disable X11/session-bus modules in `99-hifiberry-headless.conf`.
+- `ampberry` (UI, metadata daemon) and `shairport-sync` have no shell, no password, **no sudo, no
+  polkit**. Root exists only at activation time and inside the control handler.
+- **Control API**: `ampberry-control.socket` → `/run/ampberry-control.sock` (`root:ampberry` 0660,
+  one `ampberry-control@` process per request). JSON in, JSON out; peer uid re-checked
+  (`SO_PEERCRED`); size/time limits; only allow-listed actions run — built-ins (`settings-apply`,
+  `wifi-*`, `restart-airplay`, `redeploy`, `clean-reboot`) and custom entries from root-owned
+  `/etc/ampberry/actions.json` (`exec` = absolute argv, never a shell, no client arguments). The
+  Settings page shows them as buttons; `POST /api/actions/<id>` is the same thing.
+- **SSH**: `/etc/ssh/sshd_config.d/10-ampberry.conf` — `AuthenticationMethods publickey`,
+  `PasswordAuthentication no`, `PermitRootLogin no`, `AllowUsers pi`, `MaxAuthTries 3`.
+- **Firewall** (policy drop; LAN `192.168.178.0/24` only): 22, 80, 7000/tcp, 319–320/udp, 5353/udp,
+  32768–60999 tcp+udp (AirPlay 2 negotiated); hotspot onboarding rules on `wlan0` only; IPv6 closed
+  except neighbour discovery; avahi publishes IPv4 only. Change the LAN in `flake.nix` → `network`.
 
 ## Services and ports
 
-### System services (`systemctl`)
+| Unit | Runs as | Purpose |
+|------|---------|---------|
+| `nqptp.service` | DynamicUser | AirPlay 2 timing (UDP 319/320) |
+| `shairport-sync.service` | `shairport-sync` | AirPlay 2 receiver → `hw:0` (TCP 7000) |
+| `ampberry-metadata.service` | `ampberry` | pipe → `/run/ampberry/now-playing.json` |
+| `ampberry-control.socket` / `ampberry-control@.service` | root | control API |
+| `ampberry-ui.service` | `ampberry` (+`CAP_NET_BIND_SERVICE`) | Rails UI on :80 |
+| `ampberry-log.service` | root | journal → `/var/log/ampberry.log` (UI backdrop) |
+| `ampberry-wifi-fallback.timer` | root | hotspot state machine every 3 min (`ampberry wifi ensure`) |
+| `ampberry-firewall.service` | root | loads the nftables ruleset |
+| `avahi-daemon`, `NetworkManager`, `ssh`, `nix-daemon.socket`, `unattended-upgrades` | Debian | base |
 
-| Service | Purpose |
-|---------|---------|
-| `audiocontrol.service` | Player management, metadata, built-in API |
-| `config-server.service` | System/audio card configuration API |
-| `nginx.service` | Web UI + API reverse proxy |
-| `sigmatcpserver.service` | DSP TCP/REST API |
-
-### User services (`systemctl --user`, run as `pi`)
-
-| Service | Purpose |
-|---------|---------|
-| `pipewire.service` | Audio routing |
-| `wireplumber.service` | Session manager |
-| `pipewire-pulse.service` | PulseAudio compatibility |
-| `filter-chain.service` | LADSPA filter chains |
-| `pipewire-api.service` | PipeWire REST API |
-| `mpd.service` | Music Player Daemon |
-| `shairport.service` | AirPlay receiver |
-| `vu-meter.service` | VU meter for WebUI |
-| `mpris-proxy.service` | Bluetooth media control |
-
-### HTTP endpoints (via nginx on port 80)
-
-| URL prefix | Backend | Port |
-|------------|---------|------|
-| `/` | HiFiBerry WebUI | static |
-| `/api/audiocontrol/` | AudioControl | 1080 |
-| `/api/config/` | Config server | 1081 |
-| `/api/pipewire/` | PipeWire API | 2716 |
-| `/api/roomeq/` | Room EQ | 10315 |
-| `/api/dsptoolkit/` | SigmaTCP DSP | 13141 |
-| `/api/vu-meter/` | VU meter | 2717 |
-| `/api/btaudio/` | Bluetooth audio | 1082 |
-
-Web UI: `http://Ampberry/` or `http://192.168.178.221/` (mDNS: `Ampberry.local`)
+Listening (LAN only): 22/tcp, 80/tcp, 7000/tcp, 319–320/udp, 5353/udp, plus AirPlay 2 session ports.
 
 ## Key paths
 
 | Path | Purpose |
 |------|---------|
-| `/etc/audiocontrol/` | AudioControl config (`audiocontrol.json`, player defs) |
-| `/etc/pipewire/pipewire.conf.d/` | PipeWire overrides (EQ, RIAA, headless) |
-| `/etc/nginx/` | Web UI and API proxy config |
-| `/boot/firmware/config.txt` | Device tree overlays (HAT, I2C, audio off) |
-| `/var/lib/audiocontrol/` | AudioControl cache and settings DB |
-| `/var/lib/mpd/` | MPD music library and database |
-| `/home/pi/.state/` | PipeWire API runtime state |
-| `/home/pi/etc/` | Local config copies (e.g. `mpd.conf`) |
-| `/home/pi/.raat/`, `.shairport/`, `.squeezelite/` | Player runtime dirs |
+| `/opt/ampberry` | symlink into the Nix store: the flake source that produced the running system |
+| `/etc/ampberry/{defaults,actions}.json`, `release` | shipped by the flake |
+| `/etc/ampberry/system-path`, `system-manager-path` | closure recorded for Clean reboot |
+| `/var/lib/ampberry/settings.json` | user settings (survive re-provisioning) |
+| `/var/lib/ampberry/ui-secret` | Rails `SECRET_KEY_BASE` (root:ampberry 0640) |
+| `/var/log/ampberry.log`, `/var/log/ampberry/*.log` | live log; per-tool logs; `redeploy.{log,json}` |
+| `/run/ampberry/`, `/run/ampberry-control.sock` | now-playing state + cover; control socket |
+| `/boot/firmware/{config.txt,user-data,network-config,meta-data}` | HAT overlay; cloud-init seed |
+| `/etc/shairport-sync.conf` | rendered — do not edit by hand (use Settings / `ampberry settings apply`) |
 
-## Common commands
-
-```bash
-# Check player status
-curl -s http://localhost/api/audiocontrol/players | python3 -m json.tool
-
-# Restart audio after PipeWire config changes
-systemctl --user restart pipewire wireplumber filter-chain
-
-# Restart control plane after /etc/audiocontrol changes
-sudo systemctl restart audiocontrol
-
-# Restart web stack
-sudo systemctl restart nginx
-
-# List audio hardware
-aplay -l
-pw-cli info all | grep -E 'node.name|node.description'
-
-# Inspect running user services
-systemctl --user list-units --type=service --state=running
-
-# Package info
-dpkg -l | grep -i hifiberry
-```
-
-### Automatic updates (unattended-upgrades)
-
-`unattended-upgrades` is enabled and restricted to **Debian security updates only**:
-
-- Allowed origins: `Debian-Security` (`trixie-security`). The HiFiBerry repo
-  (`debianrepo.hifiberry.com`) and Raspberry Pi kernel/firmware repo
-  (`archive.raspberrypi.com`) are **excluded** — those are upgraded manually and listen-tested.
-- Automatic **reboot at 04:00** when a security update requires it (briefly drops playback/SSH).
-- Unused kernels and dependencies are auto-removed (SD-card hygiene).
-
-Config: `/etc/apt/apt.conf.d/52unattended-upgrades-local` (policy) and
-`/etc/apt/apt.conf.d/20auto-upgrades` (enables `apt-daily-upgrade.timer`).
-
-Audio-stack and kernel upgrades remain a deliberate manual step from the HiFiBerry apt
-repository (`/etc/apt/sources.list.d/hifiberry.list`):
+## Operating it
 
 ```bash
-sudo apt update && sudo apt upgrade   # review, then listen-test afterward
+sudo ampberry provision                     # re-run the runtime steps (idempotent)
+echo '{"settings":{"volume_max_db":-9}}' | sudo ampberry settings apply
+sudo ampberry action list | sudo ampberry action run restart-airplay
+sudo ampberry redeploy start                # re-apply the flake from /opt/ampberry + provision (background)
+sudo ampberry system clean-reboot           # cloud-init clean + reboot: first-boot path again
+ampberry wifi status · sudo ampberry wifi hotspot on|off
+tail -f /var/log/ampberry.log               # what the UI shows as backdrop (errors red, warnings accent)
+sudo nft list table inet ampberry · systemctl status shairport-sync nqptp ampberry-ui
 ```
 
-Initial install reference (already done on this device):
-
+Deploying a change (from the Mac, in `ampberry-v2/`):
 ```bash
-curl -Ls https://tinyurl.com/hbosrepo | bash
-curl -Ls https://raw.githubusercontent.com/hifiberry/hifiberry-os/refs/heads/hbosng/install-all | bash
-sudo apt install -y hbos-full
-sudo config-configtxt --default-config --enable-i2c
+nix run github:numtide/system-manager/release-26.05 -- switch --flake .#ampberry --target-host pi@ampberry.local --sudo
 ```
+Builds on the nix-darwin `linux-builder`, copies the closure over SSH, activates. Nothing is rsynced.
+Requires `pi` in the Pi's Nix `trusted-users` (`/etc/nix/nix.custom.conf`, set at install time) —
+otherwise the daemon rejects the unsigned paths.
+
+### Automatic updates
+
+`unattended-upgrades` — **Debian security only** (`/etc/apt/apt.conf.d/52unattended-upgrades-local`),
+auto-reboot 04:00 if required. Kernel/firmware from `archive.raspberrypi.com` stay manual and
+listen-tested; the appliance stack changes only through the flake.
 
 ## Agent guidelines
 
 ### Do
-
 - Treat this as a **live audio appliance** on constrained hardware (Pi 3, ~1 GB RAM).
-- Prefer editing config under `/etc/` or `/home/pi/.state/` and restarting the relevant service over rebooting.
-- Use `systemctl --user` for PipeWire, MPD, and player services; use `sudo systemctl` for AudioControl, nginx, and config-server.
-- Verify audio changes with `aplay -l`, `pw-cli`, or the WebUI/API — not just config syntax.
-- Keep changes minimal and focused; match existing HiFiBerry conventions.
+- Change the stack **through the flake** (`ampberry-v2/`), test locally (`tools/build-image.sh` is the
+  test stage), then deploy with `system-manager … --target-host`. Keep runtime edits to the
+  `ampberry` tools' domain (settings, Wi‑Fi, provisioning).
+- Verify audio for real: `aplay -l`, `systemctl status shairport-sync nqptp`, `avahi-browse -rt
+  _airplay._tcp`, the UI's now-playing, `amixer -c0 sget Digital` — and `tools/verify.sh`.
+- Keep `ampberry-v2/README.md`, this file and `OPERATIONS.md` in sync with the device.
 
 ### Ask first
-
-- Rebooting the device (interrupts playback and SSH).
-- `apt upgrade` / package removals (may break the audio stack).
-- Changes to `/boot/firmware/config.txt` device-tree overlays.
-- Disabling or removing players that may be in active use.
+- Rebooting / Clean reboot (interrupts playback and SSH).
+- `apt` changes (kernel/firmware), `config.txt` edits, changing the firewall posture or the LAN CIDR.
+- Anything that gives the `ampberry` user more privilege than the control socket.
 
 ### Never
-
-- Commit or log secrets (MPD passwords, Spotify/Last.fm API keys, SSH keys).
-- Force-push or rewrite git history unless explicitly asked.
-- Run destructive commands (`rm -rf`, `mkfs`, `dd`) without explicit confirmation.
-- Assume x86 binaries — this is **aarch64 / arm64**.
-
-## Project layout (this workspace)
-
-```
-/home/pi/
-├── AGENTS.md          # This file
-├── etc/               # Local config staging (mpd.conf)
-├── .state/            # PipeWire API runtime settings
-├── .raat/             # RAAT player config
-├── .shairport/        # Shairport config
-└── .squeezelite/      # Squeezelite config
-```
-
-Most HiFiBerry software is installed as Debian packages under `/usr/` and `/etc/`. Custom development, if any, should live under `/home/pi/`.
+- Add volume control to the UI; raise `volume_max_db` above the listen-tested ceiling without a test.
+- Install `ufw`/PipeWire/hbos packages back; use `rsync` to deploy; put secrets in the Nix store.
+- Commit or log secrets (Wi‑Fi PSK, SSH keys, `pi` hash, hotspot PSK, Rails secret).
+- Assume x86 binaries — this is aarch64; builds for it happen on the linux-builder or the pi-gen chroot.
 
 ## Speaker build (custom passive)
 
-The Amp2 HAT drives a custom passive speaker pair. Document driver model, enclosure, crossover, and any EQ tuning notes here once known:
+The Amp2 drives a custom passive speaker pair. Document driver model, enclosure, crossover and any
+EQ notes here once known:
 
 ```
 Driver(s):
@@ -233,35 +166,17 @@ Crossover:
 EQ notes:
 ```
 
-The **Speaker EQ 2x2** PipeWire filter (`90-speakereq.conf`) is the right place to tune frequency response. Settings persist in `/home/pi/.state/pipewire-api/settings.json` and are exposed via `/api/pipewire/`.
+### Volume ceiling (the 2026-10 "saturates then stops" issue)
 
-The **RIAA phono preamp** filter is installed but secondary for the streaming-focused setup. It can stay disabled unless vinyl input is added later.
-
-### Volume / loudness gotcha (diagnosed 2026-06-26)
-
-Sound was quieter than on the old (pre-PipeWire) OS. Cause: the DAC output node
-(`alsa_output.platform-soc_sound.stereo-fallback`, shown as "Built-in Audio Stereo")
-carried a persisted PipeWire **software** volume of cubic 0.40 ≈ linear 0.064 (**−24 dB**),
-applied as `softVolumes`. The WebUI/AudioControl slider drives a *different* control — the
-ALSA **`Digital`** mixer (auto-detected, `services.volume.type = alsa`) — so this hidden cut
-was unreachable from the UI and stacked on top of every source.
-
-Fix — restore the output node to unity (0 dB); WirePlumber persists it in
-`~/.local/state/wireplumber/default-routes`:
-
-```bash
-# node id from: wpctl status   (the "Built-in Audio Stereo" sink)
-wpctl set-volume <id> 1.0
-wpctl get-volume <id>          # -> Volume: 1.00
-```
-
-The signal chain is now unity throughout (DAC node 0 dB → flat Speaker EQ → `Digital` mixer
-governs level). **Max output is ~24 dB louder than before the fix** — start the WebUI slider
-low and ramp up. Unity is the clean maximum; going beyond it (extra gain in the EQ
-`master_gain_db`) risks digital clipping. RIAA is *not* in the streaming path (default sink is
-`speakereq2x2`; the `riaa` node feeds in but has no source).
+Full-scale digital output drives the Amp2 beyond what its supply/speakers tolerate: the amp
+distorts and then shuts down. There is no software bug behind it. The fix is the `volume_max_db`
+setting (default **−6 dB**): AirPlay volume from the phone is scaled into
+`[−volume_range_db, volume_max_db]` on the `Digital` mixer by shairport-sync. Listen-test before
+raising it. History: hbos had previously hidden a −24 dB PipeWire software cut (fixed 2026-06-26),
+which is why the problem only appeared afterwards.
 
 ## Open questions
 
-- Custom code / automation plans under `/home/pi/` (TBD)
-- Git workflow for any custom scripts or configs
+- Speaker/driver details above.
+- Whether to rebuild and flash the branded image (`tools/build-image.sh` → `tools/flash.sh`) onto a
+  spare card as a cold standby.

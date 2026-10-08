@@ -1,0 +1,368 @@
+# Operations Log
+
+A dated record of operational actions performed on the devices — updates, restarts, config
+changes, fixes. Newest entries first. See [`AGENTS.md`](./AGENTS.md) for why this exists and what
+belongs here.
+
+## 2026-07-24 — Package upgrade: Ampberry
+
+Ran `sudo apt-get update && apt-get upgrade` (non-interactive, `--force-confold` to preserve local
+config edits). Pre-check: both devices idle (MPD stopped, no active player), so a safe time to
+touch the stack.
+
+**Installed (100 packages):**
+- HiFiBerry stack: `hifiberry-audiocontrol` 0.7.12 → 0.8.3, `hifiberry-dsp` 1.3.11 → 1.3.12,
+  `hifiberry-bluetooth` 1.0.3 → 1.0.5, `hifiberry-configurator` 2.13.14 → 2.14.4,
+  `hifiberry-librespot` 0.8.0.3 → 0.8.0.6, `hifiberry-shairport` 5.0.1.3 → 5.1.0.2,
+  `hifiberry-squeezelite` 2.0.0.1559 → 2.0.0.1561, `hifiberry-vu-meter` 0.1.1 → 0.1.2,
+  `hbos-minimal` 0.9 → 0.11.
+- ~90 Debian security/base packages (libc6, openssl, gpg, samba libs, python3.13, libav*, etc.) —
+  routine, no notable issues.
+
+**Held back by plain `upgrade`** (would require adding/removing packages, so `apt upgrade` skips
+them by design): `hbos-full`, `hifiberry-webui`, `hifiberry-mpd`, `hifiberry-pipewire-configs`,
+plus the kernel meta-packages (`linux-image-rpi-v8`/`rpi-2712`, headers, base) still on 6.18.33.
+
+Simulated (`apt-get dist-upgrade -s`) what completing the upgrade would do: **removes
+`ladspa-riaa`** (the RIAA phono-preamp plugin this repo's docs reference in the filter-chain
+config), installs **75 new packages** — GTK4/libadwaita, ffmpeg, gstreamer, pocketsphinx (speech
+recognition), `songrec` (audio fingerprinting/song-ID), plus new HiFiBerry components
+(`hifiberry-auth`, `hifiberry-input-processor`, `hifiberry-sendspin`,
+`hifiberry-analog-recognition`) — and bumps the kernel to 6.18.34 (needs a reboot to take effect).
+That's new feature surface, not a routine bump, and it touches a package the docs call out —
+**paused here and went back to the user for an explicit decision** rather than assuming "perform
+upgrade" covered it. See follow-up entry once decided.
+
+**Post-upgrade actions:** `audiocontrol`, `config-server`, `sigmatcpserver` auto-restarted via
+package postinst (confirmed via `ActiveEnterTimestamp`); `pipewire-api` and `vu-meter` **user**
+services were left running the old binary after upgrade — restarted manually
+(`systemctl --user restart pipewire-api vu-meter`).
+
+**Verification:** no failed units (system or user), audio at unity gain (`wpctl status` → Built-in
+Audio Stereo `vol: 1.00`), AudioControl players endpoint responding normally (all idle, as
+expected). No reboot required for what was actually installed (kernel packages were held back).
+
+## 2026-07-24 — Package upgrade: HifiBerry
+
+Same treatment as Ampberry, same session: `sudo apt-get update && apt-get upgrade` (non-interactive,
+`--force-confold`). Device idle beforehand (MPD stopped).
+
+**Installed (81 packages):** same HiFiBerry-stack bump as Ampberry (`hifiberry-audiocontrol`
+0.7.13 → 0.8.3, `hifiberry-dsp` → 1.3.12, `hifiberry-bluetooth` → 1.0.5, `hifiberry-configurator`
+2.13.16 → 2.14.4, `hifiberry-librespot` 0.8.0.4 → 0.8.0.6, `hifiberry-shairport` → 5.1.0.2,
+`hifiberry-squeezelite` → 2.0.0.1561, `hifiberry-vu-meter` → 0.1.2, `hbos-minimal` 0.9 → 0.11) plus
+~70 Debian security/base packages. No kernel packages in the list this time — this unit was already
+on 6.18.34.
+
+**Held back:** `hbos-full`, `hifiberry-webui`, `hifiberry-mpd`, `hifiberry-pipewire-configs` — same
+as Ampberry, same reason. Not simulated separately; same `dist-upgrade` tradeoffs apply (see
+Ampberry entry above) — decision pending with the user for both devices together.
+
+**Issue hit:** `config-server.service` came up **failed** (`start-limit-hit`) right after the
+upgrade. Journal showed the service actually started cleanly and bound to port 1081, then was
+*stopped* (not crashed) — almost certainly another package's postinst restarting it again in the
+same few-second window, tripping systemd's default restart-rate-limit on the next start attempt.
+Fixed with `sudo systemctl reset-failed config-server && sudo systemctl start config-server`;
+confirmed active and responding on :1081 afterward. Worth knowing for future multi-package
+HiFiBerry-stack upgrades on either device — check `systemctl --failed` after and clear/restart
+anything caught by this.
+
+**Post-upgrade actions:** `audiocontrol`/`config-server`/`sigmatcpserver` restarted via postinst
+(config-server needed the manual kick above); `pipewire-api` and `vu-meter` user services left on
+old binaries, restarted manually.
+
+**Verification:** no failed units after the fix, audio at unity gain (`vol: 1.00`), AudioControl
+players endpoint responding normally, no reboot required.
+
+## 2026-07-24 — Full stack upgrade (hbos 0.9 → 0.11) + reboot: HifiBerry
+
+Follow-up to the held-back packages above. User (on Opus 4.8) explicitly authorized the full
+upgrade **and reboots**, which covers the two things previously paused on: the `ladspa-riaa`
+removal / new-package surface, and the reboot.
+
+Ran `sudo apt-get full-upgrade` (non-interactive, `--force-confold`): **4 upgraded, 67 new, 1
+removed** (72 MB). HifiBerry was already on kernel 6.18.34, so **no kernel change** here — the
+reboot was a clean-state restart, not required for a kernel.
+
+- **Upgraded:** `hbos-full` 0.9 → 0.11, `hifiberry-webui` 0.19.11 → 0.20.3, `hifiberry-mpd`
+  0.24.8.3 → 0.24.13.1, `hifiberry-pipewire-configs` 1.0.7 → 1.0.10.
+- **New HiFiBerry components (hbos 0.11):** `hifiberry-auth` 0.1.2, `hifiberry-input-processor`
+  1.3.1, `hifiberry-sendspin` 0.1.1, `hifiberry-analog-recognition` 0.2.3 (adds an "analog" +
+  "sendspin" player; brings in GTK4/libadwaita, ffmpeg, gstreamer, pocketsphinx, `songrec` as
+  deps — ~67 new packages total).
+- **Removed:** `ladspa-riaa` (RIAA phono-preamp LADSPA plugin). This was a **coordinated** change:
+  the new `hifiberry-pipewire-configs` 1.0.10 also **dropped `90-riaa.conf`** from
+  `/etc/pipewire/pipewire.conf.d/`, so nothing references the plugin anymore. The Speaker EQ
+  (`90-speakereq.conf` / `speakereq2x2.so`) — the filter actually in the streaming path — is
+  untouched and remained the default sink throughout. Upstream has evidently retired the built-in
+  RIAA filter chain. **Note:** the `ladspa-riaa` package is in `rc` state and its
+  `/usr/lib/ladspa/riaa.so` was left orphaned on disk (harmless — unreferenced); not purged.
+
+**RIAA docs impact:** both device docs describe a `90-riaa.conf` RIAA phono-preamp filter that no
+longer exists after this upgrade. Docs updated to reflect removal.
+
+**Reboot:** `systemctl reboot` at 14:56:45, SSH back ~44 s later. Post-reboot verification: kernel
+6.18.34, all system + user services active, **no failed units**, `filter-chain` active with
+`speakereq2x2` as default sink, **unity gain 1.00** intact, WebUI HTTP 200, AudioControl serving 7
+players (`analog`, `lms`, `mpd`, `raat`, `sendspin`, `shairport`, `spotify`).
+`analog-recognition.service` cleanly **skips via `exec-condition`** (no analog-input hardware on a
+line-out DAC+) — inactive by design, not a failure.
+
+## 2026-07-24 — Full stack upgrade (hbos 0.9 → 0.11) + kernel + reboot: Ampberry
+
+Same operation as HifiBerry above, on Ampberry (Pi 3 / Wi-Fi). `sudo apt-get full-upgrade`
+(non-interactive, `--force-confold`): **10 upgraded, 75 new, 1 removed** (149 MB — larger than
+HifiBerry because this device *also* got the **kernel bump 6.18.33 → 6.18.34** + firmware, which
+HifiBerry was already past).
+
+- **Upgraded / new / removed:** identical set to HifiBerry — `hbos-full` 0.9 → 0.11,
+  `hifiberry-webui` 0.19.11 → 0.20.3, `hifiberry-mpd` → 0.24.13.1, `hifiberry-pipewire-configs`
+  1.0.6 → 1.0.10; new `hifiberry-auth` / `-input-processor` / `-sendspin` / `-analog-recognition`
+  (+ GTK4/ffmpeg/gstreamer/pocketsphinx/songrec deps); `ladspa-riaa` removed with `90-riaa.conf`
+  dropped by the new configs package (Speaker EQ untouched). `riaa.so` left orphaned (`rc` state).
+- **Kernel:** `linux-image-rpi-v8` / `-2712` 6.18.33 → 6.18.34 unpacked and staged; running kernel
+  switched on reboot (see below).
+
+**Reboot (required — kernel):** `systemctl reboot` at 15:03:06, SSH back ~74 s later (Wi-Fi + Pi 3
+reassociation, a bit slower than HifiBerry's Ethernet). Post-reboot verification: **running kernel
+now 6.18.34**, all system + user services active, **no failed units**, `filter-chain` active with
+`speakereq2x2` default sink, **unity gain 1.00** intact (the historically-sensitive control on this
+device — see "Volume / loudness gotcha"), WebUI HTTP 200, AudioControl serving the same 7 players.
+`analog-recognition` self-skips via `exec-condition` (Amp2 has no analog-input ADC either).
+
+**Verification method:** confirmed via ALSA/PipeWire routing + node gain (`wpctl`) + AudioControl
+API rather than playing a live test tone — a tone here would drive the Amp2 → speakers directly and
+risk a loud surprise in the room. Routing/gain/API all consistent with clean unity-gain output.
+
+### Net result — both devices
+Both Ampberry and HifiBerry now on: `hbos-full` 0.11, `hifiberry-audiocontrol` 0.8.3,
+`hifiberry-webui` 0.20.3, `hifiberry-mpd` 0.24.13.1, kernel 6.18.34, fully patched Debian. All
+HiFiBerry-stack + Debian updates that were pending at the start of the session are now applied.
+Nothing left held back.
+
+## 2026-10-08 — Full stack upgrade (hbos 0.11 → 0.14) + kernel staged: Ampberry
+
+Triggered while troubleshooting "volume saturates and the sound stops" (software gain chain verified
+clean: DAC node 1.00, Speaker EQ flat, `Digital` ≤ 0 dB; the cut-out is amp headroom — a
+`volume_max_db` ceiling is the fix, not more software). Ran `apt-get full-upgrade`
+(non-interactive, `--force-confold`) as a detached `systemd-run` unit so an SSH drop could not kill dpkg.
+
+**Upgraded (161 packages):** `hbos-full`/`hbos-minimal` 0.11 → **0.14**, `hifiberry-audiocontrol`
+0.8.3 → **0.21.0**, `hifiberry-webui` 0.20.3 → 0.27.0, `hifiberry-configurator` 2.14.4 → 2.18.0,
+`hifiberry-shairport` 1:5.1.0.2 → 1:5.5.0.1, `hifiberry-librespot` 0.8.0.6 → 0.8.0.15,
+`hifiberry-mpd` 0.24.13.1 → 0.24.13.6, `hifiberry-dsp` 1.3.12 → 1.5.5, `hifiberry-bluetooth`
+1.0.5 → 1.0.8, `ladspa-speakereq` 1.1 → 1.2, `pipewire-api` 2.1.3 → 2.2.0, kernel
+`linux-image-rpi-v8` 6.18.34 → **6.18.50** (new package names, hence `full-upgrade`),
+`raspi-firmware` 1.20260521 → 1.20260915, ~120 Debian/RPi base packages.
+
+**Issue hit:** the first run aborted on `hifiberry-audiocontrol_0.21.0.deb`: dpkg had to
+deconfigure `hifiberry-bluetooth` 1.0.5 and its `prerm` does not accept the `deconfigure`
+argument (upstream packaging bug, still present in 1.0.8). 158 packages were left unconfigured.
+Resume: `apt-get -y -f full-upgrade` — by then `hifiberry-bluetooth` 1.0.8 was unpacked, so the
+`Breaks: hifiberry-bluetooth (<< 1.0.6)` no longer required deconfiguring it. Second run `EXIT=0`.
+
+**Post-upgrade state:** all system/user units active, no failed units, sink at unity (1.00), DAC on
+`hw:0`, WebUI 200. Running kernel still 6.18.34; **6.18.50 staged, reboot pending**. Conffile
+leftovers to review: `/etc/audiocontrol/{audiocontrol.json,players.d/librespot.json,players.d/shairport.json}.dpkg-dist`.
+Also observed (pre-existing): `ble-provisioning.service` restarts every 30 s forever (its
+`ExecStartPre` exits 1 when a network is present) and the journal is volatile (`Storage=volatile`
+from a vendor drop-in). Backup: `/home/pi/backup-pre-hbos014-2026-10-08.tgz`.
+
+**Decision taken the same day:** Ampberry will be rebuilt in place as a Nix-managed, AirPlay-2-only
+appliance (see `ampberry-v2/README.md`); this upgrade leaves the hbos install consistent as the
+fallback until the switch-over, which gets its own entry.
+
+## 2026-10-08 — Ampberry rebuilt in place as a Nix-managed AirPlay 2 appliance (Ampberry v2)
+
+Same evening as the hbos 0.14 upgrade; approved sequence run non-interactively from the Mac
+(`ampberry-v2/tools/apply-live.sh`, `ASSUME_YES=1`, console log `ampberry-v2/build/apply-console.log`).
+No flash: Raspberry Pi OS Lite stays as the base, everything above the kernel now comes from the
+`ampberry-v2/` flake applied with system-manager. Design and security model: `ampberry-v2/README.md`,
+new `Ampberry.md`.
+
+**Preflight:** kernel 6.18.34 (6.18.50 staged from the earlier upgrade), uptime 4 h 55, 48 GB free.
+**Harvested first** (`--harvest`, into gitignored `build/`): `pi`'s `authorized_keys` (2 keys), the
+`pi` password hash, the live `network-config` (SSID + 64-hex PSK) — so the cloud-init seed reproduces
+the current access exactly.
+
+**Backup:** `build/backup-pre-nix-20261008-231116.tgz` (configs, `/boot/firmware/*`,
+`dpkg --get-selections`, `apt-mark showmanual`, `hifiberry.list`), kept on the Mac.
+
+**Removed from the device:** all hbos user units stopped/disabled, `loginctl disable-linger pi`;
+`apt-get purge` of the HiFiBerry stack — `hbos-full`/`hbos-minimal` 0.14, `hifiberry-audiocontrol`
+0.21.0, `hifiberry-webui` 0.27.0, `hifiberry-configurator` 2.18.0, `hifiberry-shairport` 1:5.5.0.1,
+`hifiberry-librespot` 0.8.0.15, `hifiberry-mpd` 0.24.13.6, `hifiberry-dsp` 1.5.5,
+`hifiberry-bluetooth` 1.0.8, `hifiberry-raat`, `-squeezelite`, `-sendspin`, `-vu-meter`,
+`-analog-recognition`, `-input-processor`, `-auth`, `-pipewire-configs`, `ladspa-speakereq`,
+`roomeq`, `pipewire`/`pipewire-pulse`/`wireplumber` 1.4.2, `pipewire-api` 2.2.0, `nginx`,
+`rpi-connect-lite` — plus autoremove of their dependency tree (GTK/Mesa/X11/numpy…): **345 packages
+removed, 51 purged with conffiles, ~1.15 GB freed**. HiFiBerry apt source + keyring dropped.
+Kept from Debian: kernel/firmware, NetworkManager, avahi-daemon (+ `avahi-utils`, `alsa-utils`,
+`curl` installed), cloud-init, ssh, unattended-upgrades.
+
+**Added:** Determinate Nix **3.23.1** (Nix 2.35.2, multi-user daemon, store on the SD card); system
+users `ampberry` and `shairport-sync` (nologin, no sudo); then `system-manager switch --flake
+.#ampberry --target-host pi@192.168.178.221 --sudo` from the Mac (closure built on the nix-darwin
+`linux-builder`, copied over SSH): shairport-sync **5.5.2** (AirPlay 2, `--with-metadata-pipe`),
+nqptp **1.2.8**, `ampberry` Ruby tools 0.2.0, Rails 7.2 UI on :80, nftables LAN-only firewall,
+keys-only sshd drop-in, branding. Then `sudo ampberry provision` (config.txt, users/dirs, UI secret,
+avahi IPv4-only, sshd reload, hostname, settings → `/etc/shairport-sync.conf` with
+`volume_max_db = -6`, leftovers cleanup), the cloud-init seed scp'd to `/boot/firmware`, reboot
+into kernel **6.18.50**.
+
+**Issue hit:** the first `system-manager switch --target-host` failed while copying the closure —
+`cannot add path '…-ampberry.nft' because it lacks a signature by a trusted key`. The fresh
+Determinate Nix had `trusted-users = root` only, and `nix copy --to ssh://pi@…` adds unsigned,
+Mac-built paths as `pi`. Fix: `trusted-users = root pi` in `/etc/nix/nix.custom.conf` + restart
+`nix-daemon` (now set by the installer `--extra-conf` in `apply-live.sh`, the cloud-init seed and
+the pi-gen stage), then resumed with the new `tools/apply-live.sh --from-switch`.
+
+**Issues hit on the first activation (fixed in the flake, re-switched the same evening):**
+- the script's follow-up `nix build github:numtide/system-manager` *on the Pi* started compiling
+  the Rust CLI from source (our closure pins system-manager to our nixpkgs, so the upstream hash
+  isn't in any cache the Pi trusts) — killed; the CLI now ships inside the closure
+  (`environment.systemPackages`, `/run/system-manager/sw/bin/system-manager`) and the recorded
+  paths are derived from the live system. The dead `--build-on-device` mode was removed.
+- `ampberry-wifi-fallback` failed with `nmcli: No such file or directory`: system-manager gives
+  units a Nix-only PATH. The Ruby-tool units (`ampberry-control@`, `ampberry-log`,
+  `ampberry-wifi-fallback`) now get `path = [ "/usr" ]` → `/usr/bin:/usr/sbin`.
+- `ampberry-ui` failed at `CREDENTIALS` because `/var/lib/ampberry/ui-secret` is only created by
+  `ampberry provision`, which runs after the switch. The unit now creates it itself
+  (`ExecStartPre=+…` as root) so it no longer depends on provisioning order.
+- system-manager 1.1 keeps its profile at `/nix/var/nix/profiles/system-manager-profiles/system-manager`
+  (not `…/profiles/system-manager`); `redeploy.rb` and the script now look there first.
+- Observed, harmless: shairport-sync started with the hbos leftover `/etc/shairport-sync.conf`
+  (name "HiFiBerry", no ceiling) until provision rendered the new one.
+
+**Found by `verify.sh` after the reboot, fixed with a fourth (plain) switch:**
+- `/settings` returned 500: `Log` wrote its `[INFO]` lines to stdout, and in the socket-activated
+  control handler stdout *is* the client socket, so the UI's JSON reply was prefixed with a log
+  line. `Log` now writes to stderr (journal); test added.
+- the live log only ever contained its own start line: the aggregator's `journalctl -u … + _TRANSPORT=kernel`
+  is invalid (`"+" can only be used between terms`), so the child exited every 2 s. It now follows
+  the whole journal as JSON and selects in Ruby; tests updated.
+- the "shairport-sync 5.5.2" check grepped `-V`, but upstream's 5.5.2 tag still reports `5.5.1-…`;
+  the check now uses the store path (`…-shairport-sync-5.5.2`, built from `refs/tags/5.5.2`).
+- cosmetic: activation logged "error reloading" for the template `ampberry-control@.service`;
+  `restartIfChanged = false` (instances always spawn from the new unit file).
+
+**Verification (2026-10-08 23:41, kernel 6.18.50, 4th generation live):** `tools/verify.sh` — **all 23
+checks passed**: all units active, no failed units, 0 HiFiBerry packages, shairport-sync 5.5.2
+AirPlay2+metadata, nqptp 1.2.8, nftables table loaded, sshd keys-only/no root, `ampberry` nologin +
+no sudo, control socket `root:ampberry 0660`, `/settings` 200 + `/health` ok, now-playing snapshot,
+`_airplay._tcp` "Ampberry" announced on 192.168.178.221, HAT on `hw:0`, overlay + BT-off in
+`config.txt`. Rendered conf: `service_type = "airplay2"`, `volume_max_db = -6.0`, metadata pipe.
+Listening: 22, 80, 7000/tcp, 319–320, 5353/udp. RAM used ~255 MB (hbos: ~450 MB), Nix store 1.4 GB,
+48 GB free. Live log streaming (ssh/airplay/kernel/control tags). **Listen-test by Florent pending**
+(AirPlay 2 from iPhone; confirm no cut-out at phone max = −6 dB on `Digital`). Rollback: generations
+1–3 in `/nix/var/nix/profiles/system-manager-profiles/`, hbos backup tarball on the Mac.
+
+**23:49 — seed from `secrets.env` + UI tweak (generation 5).** Florent put the Wi‑Fi passphrase in
+`ampberry-v2/secrets.env`; checked on the Pi that `wpa_passphrase` derives it to the live 64‑hex key
+(match), re-harvested (SSH keys + `pi` hash still from the device), rendered and installed
+`/boot/firmware/{user-data,network-config,meta-data}` (`cloud-init schema`: valid). No live network
+change — the running NM profile is the same network. UI: the log backdrop now colours error lines
+red (`--danger`) and warnings in the accent colour (keyword match in `log-backdrop.js`). Deployed
+with a plain `system-manager switch`; `verify.sh` all green.
+
+## 2026-10-09 — Ampberry web UI rebuilt on RubyUI (shadcn/ui for Rails); actions trimmed
+
+Decisions (Florent): log backdrop on every page, Wi‑Fi tab removed from the nav (`/setup` stays
+for the hotspot captive flow), Settings actions reduced to **Maintenance: Restart AirPlay ·
+Re‑announce on the network** and **System: Redeploy · Reboot** (Clean reboot / reset-settings /
+security-updates no longer in the UI — `sudo ampberry action run clean-reboot`,
+`sudo unattended-upgrade -v`; `security-updates` removed from `actions.json`), UI stack = RubyUI.
+
+**Changed in `ampberry-v2/ui`:** gems `phlex-rails` 2.4, `ruby_ui` 1.6, `tailwind_merge`,
+`importmap-rails`, `stimulus-rails` (no Node anywhere: Tailwind 4 compiled by the Nix build with
+nixpkgs `tailwindcss_4`, Stimulus pinned from the gem). Views are Phlex (`app/views/**/*.rb`),
+RubyUI components generated into `app/components/ruby_ui/` (Button, Card, Input, Badge, Alert,
+Switch, Separator, Typography, Collapsible, NativeSelect, AlertDialog, Form — none with CDN JS),
+`Components::{Nav,Flash,ActionRow}`. Confirmations are AlertDialogs; the control call is made by
+`actions.js` from `data-action-id`. Dark mode follows the phone (`.dark` toggled from
+`prefers-color-scheme`). The bridge now rescues every control-side error (a page never 500s).
+`ampberry-ui.nix` gained a build phase (Tailwind) and a check phase that renders `/`, `/settings`,
+`/setup`, `/health`, `/api/actions`, `/api/log` through Rack at build time.
+
+**Issue hit:** `bundle lock --update` pulled precompiled platform gems (`nokogiri-1.19.4-arm64-darwin`
+…), and the Nix build of the `ruby`-platform gem then failed (`mini_portile2` missing). Fix: lock
+restricted to the `ruby` platform (`bundle lock --remove-platform …`), `bundix -l` again. Also my
+first Tailwind build step doubled the path (`--cwd ui` + `ui/…`).
+
+**Deployed** with `system-manager switch --target-host` (generation 5, 01:00): `ampberry-ui` active
+after ~14 s, pages on the Pi 3: `/` 0.18 s, `/settings` ~0.9–1.3 s, `/setup` 0.9 s, `/health`
+0.04 s; Settings talks to the control socket and lists the four actions. `tools/verify.sh` — all
+checks passed. RAM used 272 MB. Verified locally first in the browser at phone width (fake
+now‑playing snapshot + generated cover via `.claude/launch.json`): player stage, settings form,
+Collapsible "Advanced…", Reboot AlertDialog, Wi‑Fi page.
+
+**Second pass (same night, Florent's review on the phone):** minimal high-contrast black/white
+tokens, no gradients (log mask removed), no transitions; **home screen = the log**, full-screen and
+scrollable back in time (follows the tail unless scrolled up; 2000 lines kept), player bar flush at
+the bottom with a cover thumbnail that opens the artwork full-screen in a RubyUI `Dialog`
+(native `<dialog>`), and a **play/pause** button: new `Ampberry::Remote` sends DACP commands to the
+sender (`avahi-browse _dacp._tcp` → `iTunes_Ctrl_<dacp_id>`, `GET /ctrl-int/1/playpause` with the
+`Active-Remote` token); the metadata parser now records `daid`/`acre`; the UI unit got Debian's
+PATH for `avahi-browse`. Settings: −/+ stepper (Stimulus `stepper_controller`) for max volume, the
+flake revision + `/opt/ampberry` store path shown at the bottom, log passive behind it. The maker
+name/homepage were removed from the device (`/etc/ampberry/release`, motd, issue, pi-gen stage,
+UI footer gone) per "don't show/store the user". Aggregator: drops our own
+`<timestamp> [LEVEL] tool:` prefix and the Wi‑Fi tool's JSON fragments. Tests: 66 runs green
+(remote + aggregator cases added). Deployed with `system-manager switch`, see below.
+
+**Third pass — single page:** player bar hidden while idle (`#player.idle`, log padding follows);
+header full-width on desktop; active tab without underline, subtle `text-shadow` glow; **Settings
+became an overlay**: `turbo-rails` 2.0.23 added (Frames only — `Turbo.session.drive = false`, no
+streams/ActionCable), RubyUI `Sheet` in the nav lazy-loads `/settings` into
+`<turbo-frame id="settings">`; `SettingsController` renders without layout for frame requests
+(`turbo_frame_request?`) and the view wraps itself in the frame so `redirect_to settings_path`
+after Apply re-renders in place with the flash. All RubyUI open/close animations disabled
+(`[data-state] { animation: none }`). Lock gotcha again: `bundle lock` silently dropped the `ruby`
+platform — re-added with `--add-platform ruby` before `bundix`.
+
+**Fourth pass:** the Settings overlay got a pinned title bar at the top and a pinned stats bar at
+the bottom (sticky header/footer inside the scrolling frame). **Build number** introduced:
+`BUILD` in `/etc/ampberry/release` = commit count (`self.revCount`), shown as `build N · <rev> ·
+<store path>` and in the motd; `dev` while the tree is dirty (as it is tonight — everything since
+the initial commit is uncommitted, so the device shows `build dev · 9c987fd-dirty`).
+
+**Fifth pass (Florent's review, same night):** nav never flies on macOS (document overscroll
+disabled on the home screen, the log and the panel are contained scroll areas); Settings overlay
+is a rigid column (title bar with a close cross, scrolling middle, stats bar); frame loads
+`eager` with a spinner (the lazy frame sometimes never fired after the Sheet cloned it); click
+outside closes; no blur behind the panel (`backdrop-blur-sm` removed from our copy of
+`sheet_content.rb`). Actions: **Restart AirPlay now also restarts avahi** (restart + re-announce
+merged; `restart-avahi` removed from `actions.json`); System order Reboot (normal) → Redeploy (red,
+`danger: true`), both armed by an "I really mean it" checkbox (`arm_controller`) instead of a
+dialog. All help text removed from Settings. Theme back to **stock** shadcn/RubyUI tokens (my
+black/white overrides and border tweaks deleted; stock animations back). Tests 66 green.
+Then: the stock top-right close removed from our copy of `sheet_content.rb` (one cross, left of
+the title), backdrop made explicitly tappable (`cursor-pointer` + a `touchend` fallback and
+Escape in `sheet_content_controller.js` — iOS Safari does not always turn a tap on a plain div
+into a click). Verified with real clicks at tablet width; deployed, `verify.sh` green.
+Then: group headings removed — one actions card (Restart AirPlay, Reboot, Redeploy), label left,
+control right, gap fills (wraps right-aligned on a narrow phone). Deployed, `verify.sh` green.
+Then the final sequence: AirPlay card (name, password) · Sound card (max volume, resampling,
+output format; the Advanced collapsible is gone) · Restart AirPlay alone · Reboot + Redeploy
+grouped; the arming checkbox reads "Ok". Two forms, each with its own Apply (settings-apply merges
+partial settings). Deployed, `verify.sh` green.
+Player bar rule: visible while playing; paused from the bar → stays with a play button
+(`pausedByUs` flag in `player.js`, cleared on resume); paused/stopped from the source → hidden;
+our optimistic state is held 5 s after a pause (the sender reports it within ~1 s).
+Florent got stuck in the overlay on the phone: closing now goes through direct `click`/`touchend`
+listeners on the panel wrapper (capture phase) for the backdrop and `[data-close-sheet]` (the
+cross) instead of Stimulus action resolution on frame-loaded content, and the opener refuses to
+stack a second overlay when "Settings" is tapped again while the first is loading (that was a way
+to get "stuck": closing one left another). Actions laid out as a table so the Ok boxes and the
+buttons sit in straight columns. Action label "Redeploy the stack" → "Redeploy now".
+
+**Root cause of the stuck overlay (found from the device, not the phone):** the Pi's importmap had
+no `controllers/ruby_ui/sheet_content_controller` — the RubyUI Sheet generator writes two
+controllers and only `sheet_controller.js` had been `git add -N`'d; the flake source is
+git-filtered, so the controller that owns `close()` never shipped (the Mac preview had the file
+on disk, hence "works here"). All the Safari theories were wrong. Fix: both files tracked
+(`checkbox_group_controller.js` too), and the `ampberry-ui` Nix check now fails when a page
+references a Stimulus controller that is not pinned in the importmap — the local/deployed source
+divergence can no longer reach the device silently. `ampberry-v2/result` gitignored.
+
+<!-- New entries go above this line -->

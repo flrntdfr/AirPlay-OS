@@ -1,0 +1,14 @@
+{
+  "_comment": "Custom actions offered in Settings and via POST /api/actions/<id>. Root-owned, installed by the Nix flake. Built-in actions (settings-*, wifi-*, restart-airplay, redeploy, clean-reboot) live in code. exec is an argv with an absolute program path — never a shell string. Security updates are automatic (unattended-upgrades); run `sudo unattended-upgrade -v` by hand if needed.",
+  "actions": [
+    {
+      "id": "reboot",
+      "label": "Reboot",
+      "description": "Restarts the box; settings and the stack are kept. Playback stops for about a minute.",
+      "exec": ["/usr/bin/systemctl", "reboot"],
+      "timeout": 30,
+      "confirm": true,
+      "danger": false
+    }
+  ]
+}

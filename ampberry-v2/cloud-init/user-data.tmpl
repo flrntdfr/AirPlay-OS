@@ -1,0 +1,79 @@
+#cloud-config
+# Ampberry first-boot / re-provision configuration (Raspberry Pi OS Lite, cloud-init NoCloud).
+# Rendered by tools/build-user-data.rb from this template; the double-brace placeholders come from secrets.env
+# and are never committed. The same file is used for a fresh image (pi-gen) and for a
+# "Clean reboot" of a running device (cloud-init clean --logs + reboot).
+#
+# What it does, in order: users + SSH keys (key-only), base packages, hotspot secret, then
+# install Nix if missing, activate the pre-built system closure with system-manager, and run
+# `ampberry provision` for everything the flake cannot express (boot config, sshd reload,
+# shairport conf, firewall, leftovers, Wi-Fi check).
+
+hostname: ampberry
+manage_etc_hosts: true
+timezone: {{TIMEZONE}}
+keyboard:
+  model: pc105
+  layout: "de"
+manage_resolv_conf: false
+
+apt:
+  preserve_sources_list: true
+  conf: |
+    Acquire {
+      Check-Date "false";
+    };
+
+ssh_pwauth: false
+disable_root: true
+
+users:
+  - name: pi
+    groups: users,adm,dialout,audio,netdev,video,plugdev,input,gpio,spi,i2c,render,sudo
+    shell: /bin/bash
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    lock_passwd: {{PI_LOCK_PASSWD}}
+{{PI_PASSWD_LINE}}
+    ssh_authorized_keys:
+{{SSH_KEYS_YAML}}
+  # Unprivileged runtime users. No login shell, no password, no sudo — root exists only at
+  # build/activation time and inside the socket-activated control handler.
+  - name: ampberry
+    system: true
+    shell: /usr/sbin/nologin
+    lock_passwd: true
+    no_create_home: true
+    groups: audio
+  - name: shairport-sync
+    system: true
+    shell: /usr/sbin/nologin
+    lock_passwd: true
+    no_create_home: true
+    groups: audio
+
+package_update: true
+packages:
+  - avahi-daemon
+  - avahi-utils
+  - alsa-utils
+  - curl
+  - ca-certificates
+
+write_files:
+  - path: /etc/ampberry/secrets.json
+    permissions: "0600"
+    owner: root:root
+    content: |
+      {"setup_psk": {{SETUP_PSK_JSON}}}
+
+runcmd:
+  # 1. Nix (Determinate installer, multi-user). Skipped when the image already carries it.
+  - [ sh, -c, "test -x /nix/var/nix/profiles/default/bin/nix || { curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix -o /tmp/nix-installer.sh && sh /tmp/nix-installer.sh install linux --no-confirm --extra-conf 'experimental-features = nix-command flakes' --extra-conf 'trusted-users = root pi' && rm -f /tmp/nix-installer.sh; }" ]
+  - [ sh, -c, "systemctl enable --now nix-daemon.socket 2>/dev/null || true" ]
+  # 2. Activate the system closure: the store paths recorded by the image build (or by
+  #    apply-live) when present, otherwise build from the flake shipped at /opt/ampberry.
+  - [ sh, -c, "export PATH=/nix/var/nix/profiles/default/bin:$PATH; FLAKE=/opt/ampberry; [ -e $FLAKE/flake.nix ] || FLAKE=/usr/local/src/ampberry; SM=$(cat /etc/ampberry/system-manager-path 2>/dev/null) && [ -x \"$SM/bin/system-manager\" ] || { SM=$(readlink -f /run/system-manager/sw/bin/system-manager); SM=${SM%/bin/system-manager}; }; SYS=$(cat /etc/ampberry/system-path 2>/dev/null) && [ -e \"$SYS\" ] || SYS=$(nix build --no-link --print-out-paths path:$FLAKE#systemConfigs.ampberry); echo \"$SM\" > /etc/ampberry/system-manager-path; echo \"$SYS\" > /etc/ampberry/system-path; \"$SM/bin/system-manager\" switch --store-path \"$SYS\"" ]
+  # 3. Runtime provisioning (idempotent).
+  - [ /run/system-manager/sw/bin/ampberry, provision ]
+
+final_message: "Ampberry is up after $UPTIME seconds — http://ampberry.local/"

@@ -1,0 +1,236 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# ampberry — root-side tooling for the Ampberry appliance.
+# The web UI never calls this directly: it talks to the control socket (`control handle`, started
+# by systemd socket activation as root), which runs only allow-listed actions.
+
+require "json"
+require "optparse"
+
+# systemd units often run without LANG; treat files as UTF-8 regardless
+Encoding.default_external = Encoding::UTF_8
+Encoding.default_internal = Encoding::UTF_8
+
+$LOAD_PATH.unshift(File.expand_path("../lib", __dir__))
+require "ampberry"
+
+USAGE = <<~USAGE
+  usage: ampberry <command> [subcommand] [options]
+
+    provision [--dry-run] [--verbose] [--skip step,...]   runtime provisioning (after the flake is active)
+    settings show|schema|render                           effective settings / schema / rendered conf
+    settings apply                                        STDIN: {"settings": {...}} → write conf, restart
+    wifi scan|status|ensure
+    wifi connect                                          STDIN: {"ssid":"...","psk":"..."}
+    wifi hotspot on|off
+    system clean-reboot                                   STDIN (optional): {"reset_settings":true}
+    system minimize | config-txt | avahi | ui-secret
+    action list | run <id>                                the allow-list the UI uses (STDIN: params JSON)
+    control handle                                        one request on STDIN (systemd socket activation)
+    metadata daemon                                       shairport-sync pipe → /run/ampberry/now-playing.json
+    log aggregate                                         journal → /var/log/ampberry.log (the UI backdrop)
+    redeploy start|run|status                             re-apply the flake (/opt/ampberry) + provision, in the background
+    version | help
+
+  Data commands print JSON on STDOUT. Commands that change the system must run as root.
+USAGE
+
+def usage(code = 0, msg = nil)
+  warn "ampberry: #{msg}\n" if msg
+  warn USAGE
+  exit code
+end
+
+def need_root!
+  return if Process.uid.zero? || Ampberry::Run.dry_run || ENV["AMPBERRY_ROOT"]
+
+  raise Ampberry::Error, "this command must run as root"
+end
+
+def stdin_json(required: true)
+  if $stdin.tty?
+    raise Ampberry::Error, "expected JSON on STDIN" if required
+
+    return {}
+  end
+  text = $stdin.read.to_s
+  return {} if text.strip.empty? && !required
+
+  data = JSON.parse(text)
+  raise Ampberry::Error, "JSON on STDIN must be an object" unless data.is_a?(Hash)
+
+  data
+rescue JSON::ParserError => e
+  raise Ampberry::Error, "invalid JSON on STDIN: #{e.message.lines.first&.strip}"
+end
+
+def out_json(data)
+  puts JSON.pretty_generate(data)
+  0
+end
+
+def parse_opts(args, &block)
+  OptionParser.new(&block).parse!(args)
+rescue OptionParser::ParseError => e
+  usage(2, e.message)
+end
+
+def cmd_provision(args)
+  opts = { skip: [] }
+  parse_opts(args) do |o|
+    o.on("--dry-run") { Ampberry::Run.dry_run = true }
+    o.on("--verbose", "-v") { opts[:verbose] = true }
+    o.on("--skip LIST") { |v| opts[:skip] = v.split(",") }
+  end
+  need_root!
+  Ampberry::Log.init("provision", verbose: opts[:verbose] || false)
+  r = Ampberry::Provision.run_all(skip: opts[:skip])
+  Ampberry::Log.info("summary: #{r.map { |k, v| "#{k}=#{v}" }.join(', ')}")
+  0
+end
+
+def cmd_settings(args)
+  sub = args.shift or usage(2, "settings needs show|schema|render|apply")
+  case sub
+  when "show" then out_json(Ampberry::Config.effective_settings)
+  when "schema" then out_json(Ampberry::Config.settings_schema)
+  when "render"
+    print Ampberry::Settings.render_conf(Ampberry::Config.effective_settings)
+    0
+  when "apply"
+    need_root!
+    Ampberry::Log.init("settings")
+    input = stdin_json(required: false)
+    settings = input.key?("settings") ? input["settings"] : input
+    r = Ampberry::Actions.run_action("settings-apply", { "settings" => settings })
+    r.delete(:after)
+    out_json(r)
+    r["ok"] ? 0 : 1
+  else usage(2, "unknown settings subcommand '#{sub}'")
+  end
+end
+
+def cmd_wifi(args)
+  sub = args.shift or usage(2, "wifi needs scan|status|ensure|connect|hotspot")
+  case sub
+  when "scan" then out_json("networks" => Ampberry::Wifi.scan)
+  when "status" then out_json(Ampberry::Wifi.status)
+  when "ensure"
+    need_root!
+    Ampberry::Log.init("wifi")
+    out_json(Ampberry::Wifi.ensure)
+  when "connect"
+    need_root!
+    Ampberry::Log.init("wifi")
+    input = stdin_json
+    out_json("ok" => true, "status" => Ampberry::Wifi.connect(input["ssid"].to_s, input["psk"].to_s))
+  when "hotspot"
+    which = args.shift or usage(2, "wifi hotspot needs on|off")
+    need_root!
+    Ampberry::Log.init("wifi")
+    changed = case which
+              when "on" then Ampberry::Wifi.hotspot_on
+              when "off" then Ampberry::Wifi.hotspot_off
+              else usage(2, "wifi hotspot needs on|off")
+              end
+    out_json("ok" => true, "changed" => changed)
+  else usage(2, "unknown wifi subcommand '#{sub}'")
+  end
+end
+
+def cmd_system(args)
+  sub = args.shift or usage(2, "system needs clean-reboot|minimize|config-txt|avahi|ui-secret")
+  parse_opts(args) { |o| o.on("--dry-run") { Ampberry::Run.dry_run = true } }
+  need_root!
+  Ampberry::Log.init("system")
+  case sub
+  when "clean-reboot"
+    input = stdin_json(required: false)
+    Ampberry::System.clean_reboot(reset_settings: input["reset_settings"] ? true : false)
+    out_json("ok" => true, "rebooting" => true)
+  when "minimize" then out_json(Ampberry::System.minimize)
+  when "config-txt" then out_json(Ampberry::System.ensure_config_txt)
+  when "avahi" then out_json(Ampberry::System.ensure_avahi_ipv4)
+  when "ui-secret" then out_json("changed" => Ampberry::System.ensure_ui_secret)
+  else usage(2, "unknown system subcommand '#{sub}'")
+  end
+end
+
+def cmd_action(args)
+  sub = args.shift or usage(2, "action needs list|run <id>")
+  case sub
+  when "list" then out_json("actions" => Ampberry::Actions.list)
+  when "run"
+    id = args.shift or usage(2, "action run needs an id")
+    need_root!
+    Ampberry::Log.init("action")
+    r = Ampberry::Actions.run_action(id, stdin_json(required: false))
+    after = r.delete(:after)
+    out_json(r)
+    after&.call
+    r["ok"] ? 0 : 1
+  else usage(2, "unknown action subcommand '#{sub}'")
+  end
+end
+
+# systemd: ampberry-control@.service (Accept=yes) → STDIN/STDOUT are the client connection
+def cmd_control(args)
+  sub = args.shift || "handle"
+  usage(2, "unknown control subcommand '#{sub}'") unless sub == "handle"
+  need_root!
+  Ampberry::Log.init("control")
+  Ampberry::Control.handle_stream($stdin, $stdout)
+end
+
+def cmd_metadata(args)
+  sub = args.shift || "daemon"
+  usage(2, "unknown metadata subcommand '#{sub}'") unless sub == "daemon"
+  Ampberry::Log.init("metadata")
+  Ampberry::MetadataDaemon.new.run
+  0
+end
+
+def cmd_log(args)
+  sub = args.shift || "aggregate"
+  usage(2, "unknown log subcommand '#{sub}'") unless sub == "aggregate"
+  need_root!
+  Ampberry::Log.init("log")
+  Ampberry::LogAggregator.new.run
+  0
+end
+
+def cmd_redeploy(args)
+  sub = args.shift || "status"
+  case sub
+  when "status" then out_json(Ampberry::Redeploy.status)
+  when "start"
+    need_root!
+    Ampberry::Log.init("redeploy")
+    out_json(Ampberry::Redeploy.start(reason: "cli"))
+  when "run"
+    need_root!
+    Ampberry::Log.init("redeploy")
+    Ampberry::Redeploy.run ? 0 : 1
+  else usage(2, "unknown redeploy subcommand '#{sub}'")
+  end
+end
+
+COMMANDS = {
+  "provision" => method(:cmd_provision), "settings" => method(:cmd_settings),
+  "wifi" => method(:cmd_wifi), "system" => method(:cmd_system), "action" => method(:cmd_action),
+  "control" => method(:cmd_control), "metadata" => method(:cmd_metadata), "redeploy" => method(:cmd_redeploy), "log" => method(:cmd_log),
+  "version" => ->(_a) { puts "ampberry #{Ampberry::VERSION}"; 0 },
+  "help" => ->(_a) { usage }
+}.freeze
+
+cmd, *rest = ARGV
+usage(2) if cmd.nil?
+handler = COMMANDS[cmd] or usage(2, "unknown command '#{cmd}'")
+begin
+  exit(handler.call(rest) || 0)
+rescue Ampberry::Error, Ampberry::Run::CommandError => e
+  Ampberry::Log.error(e.message) if Ampberry::Log.name
+  warn "ampberry #{cmd}: #{e.message}"
+  exit 1
+end

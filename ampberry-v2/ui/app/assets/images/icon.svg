@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Ampberry mark: a berry (the speaker) with a sound wave leaf — minimal, single accent colour -->
+  <circle cx="30" cy="38" r="18" fill="#c0392b"/>
+  <circle cx="24" cy="32" r="4" fill="#fff" opacity=".35"/>
+  <path d="M40 18c6-2 11 1 13 6-6 2-11-1-13-6z" fill="#3a7d44"/>
+  <path d="M40 18l-8 10" stroke="#3a7d44" stroke-width="3" stroke-linecap="round" fill="none"/>
+</svg>

@@ -1,0 +1,3 @@
+netplan-wlan0-Pass the Juice:0e837695-6a2e-310c-964e-94b81b1de8f6:802-11-wireless:wlan0:yes:yes
+lo:5b294555-62e5-479b-ab5a-8ecacb9456bc:loopback:lo:yes:no
+netplan-eth0:75a1216a-9d1a-30cd-8aca-ace5526ec021:802-3-ethernet::no:yes
