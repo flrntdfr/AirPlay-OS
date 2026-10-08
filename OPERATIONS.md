@@ -365,4 +365,10 @@ on disk, hence "works here"). All the Safari theories were wrong. Fix: both file
 references a Stimulus controller that is not pinned in the importmap — the local/deployed source
 divergence can no longer reach the device silently. `ampberry-v2/result` gitignored.
 
+**23:47 — committed and tagged.** Everything above committed as `decdbb0` on `main`, tagged
+**`v1`** (192 files; secrets/build artefacts verified ignored, staged diff scanned). Redeployed
+from the clean tree: the device now reports **`build 2 · decdbb0`** (`BUILD="2"` in
+`/etc/ampberry/release`, generation 15), `verify.sh` all checks passed. From here on every
+commit is a build number; a dirty tree deploys as `dev`.
+
 <!-- New entries go above this line -->
