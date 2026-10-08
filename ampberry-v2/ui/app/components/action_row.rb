@@ -22,7 +22,7 @@ class Components::ActionRow < Components::Base
 
   def variant = @a["danger"] ? :destructive : :outline
 
-  # "Restart AirPlay" → "Restart", "Redeploy now" → "Redeploy"
+  # "Restart AirPlay" → "Restart", "Redeploy" stays "Redeploy"
   def verb = @a["label"].to_s.split(" ").first || "Run"
 
   def arm_box

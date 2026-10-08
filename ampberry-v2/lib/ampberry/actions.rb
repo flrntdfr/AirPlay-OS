@@ -34,7 +34,7 @@ module Ampberry
                                Run.run("systemctl", "restart", "nqptp", "shairport-sync", "avahi-daemon", timeout: 90)
                                { "restarted" => %w[nqptp shairport-sync avahi-daemon] }
                              } },
-      "redeploy" => { label: "Redeploy now", params: {}, confirm: true, danger: true,
+      "redeploy" => { label: "Redeploy", params: {}, confirm: true, danger: true,
                       description: "Re-applies the Nix flake from /opt/ampberry (system-manager switch) and re-runs provisioning in the background; the log streams behind the page.",
                       code: ->(_p) { Redeploy.start(reason: "web ui") } },
       "clean-reboot" => { label: "Clean reboot (re-provision)", params: { "reset_settings" => :bool }, confirm: true, danger: true,
