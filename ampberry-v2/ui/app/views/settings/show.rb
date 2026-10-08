@@ -107,7 +107,7 @@ class Views::Settings::Show < Views::Base
     Form(action: settings_path, method: "post", class: "space-y-5") do
       input(type: "hidden", name: "authenticity_token", value: form_authenticity_token)
       yield
-      div(class: "pt-1") { Button(type: :submit, variant: :secondary) { "Apply" } }
+      div(class: "pt-1") { Button(type: :submit, variant: :secondary, class: SOFT_BUTTON) { "Apply" } }
     end
   end
 

@@ -12,6 +12,8 @@ class Components::Base < Phlex::HTML
   TAB = "no-underline text-sm"
   TAB_ACTIVE = "text-foreground font-semibold [text-shadow:0_0_10px_color-mix(in_srgb,currentColor_45%,transparent)]"
   TAB_IDLE = "text-muted-foreground"
+  # the quiet action buttons (Apply, Restart): stock secondary, a notch darker in light mode only
+  SOFT_BUTTON = "bg-zinc-200 hover:bg-zinc-300 dark:bg-secondary dark:hover:bg-secondary/80"
 
   if Rails.env.development?
     def before_template

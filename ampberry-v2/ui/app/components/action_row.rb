@@ -35,6 +35,7 @@ class Components::ActionRow < Components::Base
 
   def button
     attrs = { variant: variant, size: :sm, data: { action_id: @a["id"] } }
+    attrs.merge!(variant: :secondary, class: SOFT_BUTTON) unless @a["confirm"] || @a["danger"] # plain actions look like Apply
     if @a["confirm"]
       attrs[:disabled] = true
       attrs[:data][:arm_target] = "button"
