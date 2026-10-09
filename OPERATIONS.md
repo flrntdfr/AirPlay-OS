@@ -432,4 +432,12 @@ anchored to the row so it never leaves the pane (the first cut, anchored to the 
 the phone's right edge in the preview). `3274051`, three tooltips served, `verify.sh` all
 checks passed.
 
+**Build 22 (18:44):** password saves 1 s after the last keystroke like the other fields (the "+"
+button is gone); the brand at the top left is now the receiver's AirPlay name
+(`AmpberryBridge.airplay_name` parses the world-readable `/etc/shairport-sync.conf` — the settings
+store is root-only and a control-socket call per page load would log an action each time), and a
+saved rename updates it in place (`autosave_controller.js` → `[data-brand]`). Checked in the
+preview with a mocked POST; on the device the brand renders `Ampberry` from the live conf.
+`387860f`, `verify.sh` all checks passed.
+
 <!-- New entries go above this line -->
