@@ -189,7 +189,9 @@ module Ampberry
 
           return true
         end
-        # child output → the redeploy log file AND our stdout (the journal → the live appliance log)
+        # child output → the redeploy log file AND our stdout (the journal → the live appliance log).
+        # The bytes are tagged UTF-8 as they are (never transcoded): the tools run with
+        # Encoding.default_internal set, and nix prints "…" — "\xE2" from ASCII-8BIT to UTF-8 (2026-10-09).
         reader, writer = IO.pipe
         pid = Process.spawn(*cmd, out: writer, err: writer, in: File::NULL)
         writer.close
@@ -199,7 +201,7 @@ module Ampberry
           ready, = IO.select([reader], nil, nil, 0.5)
           if ready
             begin
-              chunk = reader.read_nonblock(65_536)
+              chunk = reader.read_nonblock(65_536).force_encoding(Encoding::UTF_8)
               log.write(chunk)
               $stdout.write(chunk)
               $stdout.flush
@@ -213,7 +215,7 @@ module Ampberry
           unless status
             _, status = Process.wait2(pid, Process::WNOHANG)
             if status
-              log.write(reader.read.to_s)
+              log.write(reader.read.to_s.force_encoding(Encoding::UTF_8))
               break
             end
           end

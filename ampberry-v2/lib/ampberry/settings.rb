@@ -82,6 +82,8 @@ module Ampberry
 
         Run.run("systemctl", "enable", "--now", "nqptp", timeout: 60)
         Run.run("systemctl", "enable", "shairport-sync", timeout: 60)
+        # a receiver that tripped its start limit (many quick saves) must come back with the next save
+        Run.try_run("systemctl", "reset-failed", "shairport-sync", quiet: true)
         Run.run("systemctl", "restart", "shairport-sync", timeout: 90)
         eff
       end

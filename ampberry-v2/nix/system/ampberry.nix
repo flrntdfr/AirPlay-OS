@@ -123,8 +123,10 @@ in
       ];
       unitConfig = {
         ConditionPathExists = "/etc/shairport-sync.conf";
-        StartLimitIntervalSec = 300;
-        StartLimitBurst = 5;
+        # crash-loop protection only: explicit restarts count too, and the Settings pane restarts
+        # the receiver after every saved keystroke burst (5 per 5 min tripped it on 2026-10-09)
+        StartLimitIntervalSec = 60;
+        StartLimitBurst = 20;
       };
       serviceConfig = {
         ExecStart = "${shairport}/bin/shairport-sync -c /etc/shairport-sync.conf";

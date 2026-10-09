@@ -93,7 +93,8 @@ class RedeployTest < AmpberryTest
     File.write("#{sm_dir}/bin/system-manager", "#!/bin/sh\necho \"system-manager $*\"\n")
     File.chmod(0o755, "#{sm_dir}/bin/system-manager")
     nix = File.join(ROOT, "fake-nix.sh")
-    File.write(nix, "#!/bin/sh\necho \"nix $*\"\n")
+    # nix prints non-ASCII ("unpacking '…' into the Git cache"): must stream through untouched
+    File.write(nix, "#!/bin/sh\necho \"nix $*\"\necho \"unpacking 'github:x/y…' into the Git cache...\"\n")
     File.chmod(0o755, nix)
     refresh = File.join(ROOT, "fake-refresh.sh")
     File.write(refresh, "#!/bin/sh\necho refreshed\n")
@@ -109,6 +110,7 @@ class RedeployTest < AmpberryTest
     assert_includes flake, 'flakeVersion = "647bf3b"'
     log = slurp(R.log_path)
     assert_includes log, "nix flake lock #{dir}"
+    assert_includes log, "unpacking 'github:x/y…'", "non-ASCII tool output streamed as is"
     assert_includes log, "system-manager switch --flake #{dir}#ampberry"
     assert_match(/== update-shairport finished in \d+s/, log)
     st = JSON.parse(slurp(R.state_path))

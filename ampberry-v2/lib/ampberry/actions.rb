@@ -31,6 +31,8 @@ module Ampberry
       "wifi-hotspot-off" => { label: "Stop onboarding hotspot", params: {}, code: ->(_p) { { "changed" => Wifi.hotspot_off } } },
       "restart-airplay" => { label: "Restart AirPlay", params: {},
                              code: lambda { |_p|
+                               # a receiver that tripped its start limit (many quick saves) must come back too
+                               Run.try_run("systemctl", "reset-failed", "shairport-sync", "nqptp", quiet: true)
                                Run.run("systemctl", "restart", "nqptp", "shairport-sync", "avahi-daemon", timeout: 90)
                                { "restarted" => %w[nqptp shairport-sync avahi-daemon] }
                              } },
