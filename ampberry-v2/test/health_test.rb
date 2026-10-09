@@ -18,7 +18,7 @@ class HealthTest < AmpberryTest
     assert_equal 48.2, s["temperature_c"]
     assert_equal 30, s["mem_percent"] # (926512 - 650000) / 926512
     assert_equal 0, s["cpu_percent"]  # two identical samples: no busy time
-    assert_equal "ok · cpu 0% · mem 30% · 48.2°C", H.line(s)
+    assert_equal "cpu 0% · mem 30% · 48.2°C", H.line(s)
   end
 
   def test_cpu_busy_share_between_samples

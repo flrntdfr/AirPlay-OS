@@ -31,7 +31,7 @@ USAGE = <<~USAGE
     metadata daemon                                       shairport-sync pipe → /run/ampberry/now-playing.json
     log aggregate                                         journal → /var/log/ampberry.log (the UI backdrop)
     redeploy start|run|status                             re-apply the flake (/opt/ampberry) + provision, in the background
-    health [--json]                                       one health line (ok · cpu · mem · temp) → journal / live log
+    health [--json]                                       one health line (cpu · mem · temp; DEGRADED · … when unwell) → journal / live log
     updates check|status                                  shairport-sync: running vs latest release (cached)
     version | help
 

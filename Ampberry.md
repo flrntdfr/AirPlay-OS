@@ -87,7 +87,7 @@ Runtime-mutable state is outside Nix: `/etc/shairport-sync.conf` (rendered from
 | `ampberry-log.service` | root | journal → `/var/log/ampberry.log` (UI backdrop) |
 | `ampberry-wifi-fallback.timer` | root | hotspot state machine every 3 min (`ampberry wifi ensure`) |
 | `ampberry-metadata.service` (log lines) | `ampberry` | one line per AirPlay transition, tag `airplay`: `⏵ Title — Artist · <client>` (client named once per session), `⏸ Title — Artist`, `⏵ …` on resume/track change, `⏹ <client>` when the session ends; nothing for a connection that has not started playing |
-| `ampberry-health.timer` | `ampberry` | on the quarter hour (`OnCalendar=*:00/15`, `AccuracySec=1s` → :00 :15 :30 :45): `ok · cpu 3% · mem 29% · 48°C` into the journal → the live log (green; `DEGRADED` red above 80 °C / 95 % RAM) |
+| `ampberry-health.timer` | `ampberry` | on the quarter hour (`OnCalendar=*:00/15`, `AccuracySec=1s` → :00 :15 :30 :45): `cpu 3% · mem 29% · 48°C` into the journal → the live log (green; `DEGRADED` red above 80 °C / 95 % RAM) |
 | `ampberry-updates.timer` | `ampberry` | daily shairport-sync release check → `/run/ampberry/updates.json` (also on demand from Settings) |
 | `ampberry-firewall.service` | root | loads the nftables ruleset |
 | `avahi-daemon`, `NetworkManager`, `ssh`, `nix-daemon.socket`, `unattended-upgrades` | Debian | base |
