@@ -415,4 +415,11 @@ setting, on each −/+ button (what moving the ceiling does, ≈ ±11–12 % lou
 limit) and on every resampling / output-format choice (`<option title>`). Tests 75 green,
 `nix build .#ampberry-ui` green (renders every page, controllers pinned).
 
+**18:18 — deployed** as `a6103c7` from a clean detached worktree (the working tree held Florent's
+uncommitted README/Dockerfile draft, which would have made the build `dev`): device reports
+**`build 16 · a6103c7`**, `ampberry-health.timer` next run 18:30:00 exactly, log lines dated,
+`/api/log?tail=2` returns the last two lines, the Live dot renders `ready`, the Settings footer
+reads `build 16 · /nix/store/…-source/ampberry-v2`, `verify.sh` all checks passed. Not
+listen-tested (no AirPlay session at the time).
+
 <!-- New entries go above this line -->
