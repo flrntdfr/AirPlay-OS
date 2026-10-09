@@ -8,9 +8,11 @@
   const url = el.dataset.url;
   const home = document.body.classList.contains("player");
   const MAX_LINES = home ? 2000 : 300;
-  // Lines are "HH:MM:SS tag  message". Errors show in red, warnings in the warning colour.
-  const ERR = /✗|\b(error|fail(ed|ure|s)?|refused|denied|time[d ]?out|unreachable|cannot|not found|rejected|panic|segfault|under-voltage|out of memory|i\/o error)\b/i;
+  // Lines are "HH:MM:SS tag  message". Errors show in red, warnings in the warning colour,
+  // the minute-by-minute health line in green; the timestamp in the secondary colour.
+  const ERR = /✗|\b(error|fail(ed|ure|s)?|refused|denied|time[d ]?out|unreachable|cannot|not found|rejected|panic|segfault|under-voltage|out of memory|i\/o error|degraded)\b/i;
   const WARN = /\b(warn(ing)?|retry(ing)?|throttl\w*|disconnect\w*|lost|invalid user)\b/i;
+  const LINE = /^(\d\d:\d\d:\d\d) (\S+)\s/;
   let offset = 0, lines = [], hot = false, lastRedeploy = null;
 
   const atBottom = () => !home || el.scrollHeight - el.scrollTop - el.clientHeight < 24;
@@ -18,8 +20,17 @@
   function render(follow) {
     el.replaceChildren(...lines.map((l) => {
       const s = document.createElement("span");
-      s.textContent = l;
-      if (ERR.test(l)) s.className = "err"; else if (WARN.test(l)) s.className = "warn";
+      const m = l.match(LINE);
+      if (m) {
+        const ts = document.createElement("span");
+        ts.className = "ts";
+        ts.textContent = m[1];
+        s.append(ts, l.slice(m[1].length));
+      } else {
+        s.textContent = l;
+      }
+      const tag = m ? m[2] : "";
+      if (ERR.test(l)) s.className = "err"; else if (WARN.test(l)) s.className = "warn"; else if (tag === "health") s.className = "ok";
       return s;
     }));
     if (follow) el.scrollTop = el.scrollHeight;

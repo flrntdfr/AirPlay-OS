@@ -7,7 +7,8 @@ Rails.application.routes.draw do
   get "cover/:file", to: "player#cover", constraints: { file: /cover-[0-9a-f]{40}\.(?:jpg|png|bin)/ }
 
   get "settings", to: "settings#show"
-  post "settings", to: "settings#update"
+  post "settings", to: "settings#update" # JSON when asked for (autosave), redirect otherwise
+  post "updates/check", to: "updates#check", as: :updates_check
 
   get "setup", to: "setup#show"
   post "setup/scan", to: "setup#scan"

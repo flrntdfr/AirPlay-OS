@@ -164,6 +164,8 @@
   .log-backdrop span { display: block; min-height: 1.4em; }
   .log-backdrop .err { color: var(--destructive); font-weight: 600; }
   .log-backdrop .warn { color: var(--warning); }
+  .log-backdrop .ok { color: var(--success); }
+  .log-backdrop .ts { color: var(--muted-foreground); }
   body.redeploying .brand::after { content: " · redeploying…"; color: var(--destructive); font-weight: 400; }
 
   /* no rubber-banding: the document never scrolls on the home screen (the log is its own scroll

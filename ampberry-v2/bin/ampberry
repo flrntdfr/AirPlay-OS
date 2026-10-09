@@ -31,6 +31,8 @@ USAGE = <<~USAGE
     metadata daemon                                       shairport-sync pipe → /run/ampberry/now-playing.json
     log aggregate                                         journal → /var/log/ampberry.log (the UI backdrop)
     redeploy start|run|status                             re-apply the flake (/opt/ampberry) + provision, in the background
+    health [--json]                                       one health line (ok · temp · cpu · mem) → journal / live log
+    updates check|status                                  shairport-sync: running vs latest release (cached)
     version | help
 
   Data commands print JSON on STDOUT. Commands that change the system must run as root.
@@ -200,6 +202,27 @@ def cmd_log(args)
   0
 end
 
+def cmd_health(args)
+  Ampberry::Log.init("health")
+  s = Ampberry::Health.sample
+  if args.include?("--json")
+    out_json(s)
+  else
+    Ampberry::Log.info(Ampberry::Health.line(s))
+    s["ok"] ? 0 : 1
+  end
+end
+
+def cmd_updates(args)
+  sub = args.shift || "status"
+  Ampberry::Log.init("updates")
+  case sub
+  when "check" then out_json(Ampberry::Updates.check)
+  when "status" then out_json(Ampberry::Updates.status)
+  else usage(2, "unknown updates subcommand '#{sub}'")
+  end
+end
+
 def cmd_redeploy(args)
   sub = args.shift || "status"
   case sub
@@ -220,6 +243,7 @@ COMMANDS = {
   "provision" => method(:cmd_provision), "settings" => method(:cmd_settings),
   "wifi" => method(:cmd_wifi), "system" => method(:cmd_system), "action" => method(:cmd_action),
   "control" => method(:cmd_control), "metadata" => method(:cmd_metadata), "redeploy" => method(:cmd_redeploy), "log" => method(:cmd_log),
+  "health" => method(:cmd_health), "updates" => method(:cmd_updates),
   "version" => ->(_a) { puts "ampberry #{Ampberry::VERSION}"; 0 },
   "help" => ->(_a) { usage }
 }.freeze

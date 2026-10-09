@@ -8,7 +8,7 @@ check() { if "${SSH[@]}" "$2" >/dev/null 2>&1; then printf '  ok   %s\n' "$1"; e
 
 echo "== Ampberry v2 verification ($HOST)"
 "${SSH[@]}" 'echo "  kernel $(uname -r) · up $(uptime -p | sed s/up\ //) · mem used $(free -m | awk "/Mem/{print \$3}") MB · nix store $(du -sh /nix/store 2>/dev/null | cut -f1)"'
-for u in ampberry-firewall nqptp shairport-sync ampberry-metadata ampberry-control.socket ampberry-ui ampberry-wifi-fallback.timer avahi-daemon ssh; do
+for u in ampberry-firewall nqptp shairport-sync ampberry-metadata ampberry-control.socket ampberry-ui ampberry-wifi-fallback.timer ampberry-health.timer ampberry-updates.timer avahi-daemon ssh; do
 	check "unit $u active" "systemctl is-active --quiet $u"
 done
 check "no failed units" '[ -z "$(systemctl --failed --no-legend)" ]'

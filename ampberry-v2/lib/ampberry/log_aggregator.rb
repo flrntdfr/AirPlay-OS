@@ -19,6 +19,7 @@ module Ampberry
     TAGS = {
       "shairport-sync" => "airplay", "nqptp" => "ptp", "ampberry-metadata" => "track", "ampberry-ui" => "ui",
       "ampberry-control" => "control", "ampberry-redeploy" => "redeploy", "ampberry-wifi-fallback" => "wifi",
+      "ampberry-health" => "health", "ampberry-updates" => "update",
       "ampberry-firewall" => "firewall", "ampberry-log" => "log", "avahi-daemon" => "mdns", "NetworkManager" => "network",
       "ssh" => "ssh", "cloud-init" => "provision", "cloud-final" => "provision", "unattended-upgrades" => "updates",
       "kernel" => "kernel"

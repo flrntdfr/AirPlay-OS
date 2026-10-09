@@ -273,5 +273,50 @@ in
         Unit = "ampberry-wifi-fallback.service";
       };
     };
+
+    # ---- health line every minute (→ journal → live log, shown green) -------------------------
+    systemd.services.ampberry-health = {
+      description = "Ampberry health line (temperature, cpu, memory)";
+      serviceConfig = {
+        Type = "oneshot";
+        User = "ampberry";
+        ExecStart = "${tools}/bin/ampberry health";
+        SuccessExitStatus = "0 1"; # 1 = degraded, still just a log line
+      };
+    };
+    systemd.timers.ampberry-health = {
+      description = "Ampberry health line every minute";
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        OnBootSec = "30s";
+        OnUnitActiveSec = "1min";
+        AccuracySec = "5s";
+        Unit = "ampberry-health.service";
+      };
+    };
+
+    # ---- shairport-sync update check, daily (and on demand from the UI) ----------------------
+    systemd.services.ampberry-updates = {
+      description = "Ampberry: is shairport-sync the latest release?";
+      wants = [ "network-online.target" ];
+      after = [ "network-online.target" ];
+      serviceConfig = {
+        Type = "oneshot";
+        User = "ampberry";
+        ExecStart = "${tools}/bin/ampberry updates check";
+        RuntimeDirectory = "ampberry";
+        RuntimeDirectoryPreserve = true; # shared with the metadata daemon: never wipe it
+        RuntimeDirectoryMode = "0755";
+      };
+    };
+    systemd.timers.ampberry-updates = {
+      description = "Daily shairport-sync update check";
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        OnBootSec = "3min";
+        OnUnitActiveSec = "1d";
+        Unit = "ampberry-updates.service";
+      };
+    };
   };
 }

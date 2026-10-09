@@ -23,6 +23,7 @@ class SettingsController < ApplicationController
       groups: groups,
       error: (res["error"] unless res["ok"]),
       flake: { "build" => release["BUILD"], "version" => release["FLAKE_VERSION"], "path" => AmpberryBridge.flake_path },
+      updates: Ampberry::Updates.status,
       notice: flash[:notice],
       alert: flash[:alert],
       embedded: turbo_frame_request?
@@ -40,7 +41,13 @@ class SettingsController < ApplicationController
       # left as-is; the control side reports the validation problem
     end
     res = AmpberryBridge.call("settings-apply", { "settings" => permitted })
-    flash[res["ok"] ? :notice : :alert] = res["ok"] ? "Settings applied. AirPlay restarted." : res["error"]
-    redirect_to settings_path # Turbo follows it inside the frame
+    respond_to do |format|
+      # autosave (no Apply button): the form posts with Accept: application/json
+      format.json { render json: { "ok" => res["ok"], "error" => res["error"] }, status: (res["ok"] ? :ok : :unprocessable_entity) }
+      format.html do
+        flash[res["ok"] ? :notice : :alert] = res["ok"] ? "Settings applied. AirPlay restarted." : res["error"]
+        redirect_to settings_path # Turbo follows it inside the frame
+      end
+    end
   end
 end

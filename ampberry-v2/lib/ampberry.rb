@@ -22,6 +22,7 @@ module Ampberry
     log: "/var/log/ampberry",
     run_dir: "/run/ampberry",
     now_playing: "/run/ampberry/now-playing.json",
+    updates: "/run/ampberry/updates.json",
     control_socket: "/run/ampberry-control.sock",
     boot: "/boot/firmware",
     config_txt: "/boot/firmware/config.txt",
@@ -72,4 +73,6 @@ module Ampberry
   autoload :Redeploy, "ampberry/redeploy"
   autoload :LogAggregator, "ampberry/log_aggregator"
   autoload :Remote, "ampberry/remote"
+  autoload :Health, "ampberry/health"
+  autoload :Updates, "ampberry/updates"
 end
