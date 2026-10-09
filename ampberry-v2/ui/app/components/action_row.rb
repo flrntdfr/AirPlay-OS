@@ -36,8 +36,7 @@ class Components::ActionRow < Components::Base
 
   def button
     attrs = { variant: variant, size: :sm, data: { action_id: @a["id"] } }
-    # plain actions (Restart): the outline look of Reboot in light mode, the quiet secondary look in dark mode
-    attrs.merge!(variant: :outline, class: "dark:border-transparent dark:bg-secondary dark:text-secondary-foreground dark:shadow-none dark:hover:bg-secondary/80") unless @a["confirm"] || @a["danger"]
+    attrs.merge!(QUIET_BUTTON) unless @a["confirm"] || @a["danger"] # plain actions (Restart) look like Apply
     if @a["confirm"]
       attrs[:disabled] = true
       attrs[:data][:arm_target] = "button"
