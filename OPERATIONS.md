@@ -425,4 +425,11 @@ listen-tested (no AirPlay session at the time).
 **Build 18 (18:32):** health line reordered to `ok · cpu 24% · mem 31% · 44.0°C` (`Health.line`,
 `136026b`; 17 was the docs commit). Deployed the same way, `verify.sh` all checks passed.
 
+**Build 20 (18:38):** Sound card — the −/+ buttons are gone (the number field's native stepper
+stays; `stepper_controller.js` deleted), and each setting's label gets a **(?)** that shows the
+help on hover or tap: a CSS-only popover (`group/help`, `group-hover`/`group-focus-within`),
+anchored to the row so it never leaves the pane (the first cut, anchored to the (?), clipped at
+the phone's right edge in the preview). `3274051`, three tooltips served, `verify.sh` all
+checks passed.
+
 <!-- New entries go above this line -->
