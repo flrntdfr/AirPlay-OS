@@ -126,13 +126,11 @@ class Views::Settings::Show < Views::Base
     end
   end
 
-  # What is running: build number (commit count), flake revision, the store path /opt/ampberry
-  # points at.
+  # What is running: build number (commit count) and flake revision.
   def stats
     div(class: "font-mono text-xs [overflow-wrap:anywhere]") do
       span(class: "font-semibold") { "build #{@flake["build"].presence || "dev"}" }
       span(class: "text-muted-foreground") { " · #{@flake["version"].presence || "unknown"}" }
-      span(class: "text-muted-foreground") { " · #{@flake["path"]}" } if @flake["path"].present?
     end
   end
 
