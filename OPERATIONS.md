@@ -440,4 +440,42 @@ saved rename updates it in place (`autosave_controller.js` → `[data-brand]`). 
 preview with a mocked POST; on the device the brand renders `Ampberry` from the live conf.
 `387860f`, `verify.sh` all checks passed.
 
+**Build 24 (18:47):** health line without the `ok` prefix — `cpu 0% · mem 31% · 43.5°C`
+(`DEGRADED · …` only when unwell). `647bf3b`, all checks passed.
+
+**Build 25 (19:02) — the Update button + on-device shairport-sync update; MAC label.** The update
+badge and "Check for updates" link became one fixed-size button (green "✓ up to date", red
+"↑ x.y.z available" / "✗ check failed", grey "Check for updates"; hover → grey "Check now" /
+"Update now"; spinner + "Checking…" / "Updating…" while busy; `updates_controller.js`,
+`GET /updates/status`). "Update now" runs the new allow-listed action `update-shairport`
+(no confirmation): the Redeploy job in update mode writes
+`/var/lib/ampberry/shairport-update/flake.nix` — the shipped flake as a `path:…?dir=ampberry-v2`
+input plus `github:mikebrady/shairport-sync/<tag>` — calling the new `lib.withShairport` output
+of `flake.nix` (`shairport-sync.nix` takes `shairportSrc`/`shairportVersion`; `build` and
+`FLAKE_VERSION` are passed through from `/etc/ampberry/release` because a `path:` input has no
+git metadata), `nix flake lock`s it, `system-manager switch`es from it, then
+`systemctl start ampberry-updates.service` refreshes the cache; the button polls until the job
+is done. The flake pin is untouched: Deploy/Redeploy from `/opt/ampberry` returns to it. AirPlay
+card also shows `MAC: b8:27:eb:…` (wlan0, from /sys). Tests 78 green. `716664f`.
+
+**First on-device run (19:05) failed in two seconds:** `"\xE2" from ASCII-8BIT to UTF-8` — the
+job streams tool output with `Encoding.default_internal` set and `nix flake lock` printed "…";
+the plain Redeploy had the same latent bug. Also found: a burst of Settings saves (each restarts
+shairport-sync) had tripped the unit's start limit (5 per 5 min) at 18:50 — one
+`ampberry-control@` instance failed with "start of the service was attempted too often"
+(cleared with `reset-failed`; the receiver had already recovered).
+
+**Build 26 (19:08):** streamed output tagged UTF-8 (test with "…" in the fake nix output);
+`shairport-sync` `StartLimitIntervalSec=60`/`StartLimitBurst=20` (crash-loop protection only) and
+`systemctl reset-failed shairport-sync` before the settings/restart-airplay restarts. `397727c`.
+**Second on-device run (19:08–19:17): success.** `ampberry redeploy start --update-shairport
+5.5.2 5.5.2` (same release, to prove the path): lock 2 s, nixpkgs/system-manager sources and the
+build toolchain pulled from the caches, **shairport-sync 5.5.2 compiled on the Pi 3**, switch,
+cache refresh — 569 s in all, memory stayed under 300 MB used. Afterwards `BUILD="26"` kept,
+`/run/system-manager/sw/bin/shairport-sync` → the new store path, `updates.json` up to date,
+nqptp / shairport-sync / UI active, `verify.sh` all checks passed. Not listen-tested after the
+switch. Expect ~10 min and a short audio gap when a real release ships; a Redeploy reverts.
+Side effect: the Nix store grew 1.5 G → 3.2 G (nixpkgs sources + the build toolchain, not GC
+roots); `sudo nix-collect-garbage` would reclaim it — left as is.
+
 <!-- New entries go above this line -->
