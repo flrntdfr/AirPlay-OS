@@ -170,7 +170,7 @@
      container) and nothing chains to it, so the nav stays put on macOS/iOS */
   html, body { overscroll-behavior: none; }
   body.player { overflow: hidden; height: 100dvh; }
-  body.player .log-backdrop { overscroll-behavior: contain; }
+  body.player .log-backdrop { overscroll-behavior: none; } /* no bounce past the first/last line */
 
   /* home: the log is the page — full contrast, scrollable back in time, under the nav and above
      the player bar */

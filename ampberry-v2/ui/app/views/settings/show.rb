@@ -26,7 +26,7 @@ class Views::Settings::Show < Views::Base
         close_cross
         Heading(level: 1, size: "5") { "Settings" }
       end
-      div(class: "min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain px-6 py-6 [-webkit-overflow-scrolling:touch]") do
+      div(class: "min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-none px-6 py-6 [-webkit-overflow-scrolling:touch]") do
         Alert(variant: :success) { AlertDescription { @notice } } if @notice.present?
         Alert(variant: :destructive) { AlertDescription { @alert } } if @alert.present?
         Alert(variant: :destructive) { AlertDescription { @error } } if @error
