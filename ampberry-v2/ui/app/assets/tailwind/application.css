@@ -191,12 +191,7 @@
     color: var(--foreground); font-size: 12px;
     padding: 3.75rem 1rem calc(1rem + env(safe-area-inset-bottom));
   }
-  body.player.has-player .log-backdrop { padding-bottom: calc(6.75rem + env(safe-area-inset-bottom)); }
-  /* the player bar is shown while playing, or while paused from the bar itself (player.js) */
-  #player:not(.shown) { display: none; }
-
+  /* the player (in the top bar) is shown while playing, or while paused from it (player.js) */
+  #player:not(.shown) { visibility: hidden; }
   #player.playing .icon-play, #player:not(.playing) .icon-pause { display: none; }
-  #player:not(.has-cover) .cover-trigger { display: none; }
-  .idle .player-progress { visibility: hidden; }
-  .progress-bar { width: 0; }
 }
