@@ -7,7 +7,7 @@ module Ampberry
   # The appliance's one live log: /var/log/ampberry.log, streamed as the backdrop of every UI page.
   # Follows the journal for the units that matter to a speaker and writes compact lines:
   #   20:41:07 airplay  Connection from 192.168.178.40 ("Flo's iPhone")
-  #   20:41:09 track    ▶ Blue in Green — Miles Davis
+  #   20:41:09 airplay  ⏵ Blue in Green â Miles Davis
   #   20:55:12 control  action settings-apply (uid 998)
   #   21:03:40 kernel   Under-voltage detected!
   # Runs as root (journal access) in ampberry-log.service; the file is world-readable and size-capped
@@ -17,7 +17,7 @@ module Ampberry
     # cannot OR unit filters with a kernel match ("+" only joins plain terms), so the whole journal
     # is followed and selected here — on this appliance that is a few lines a minute.
     TAGS = {
-      "shairport-sync" => "airplay", "nqptp" => "ptp", "ampberry-metadata" => "track", "ampberry-ui" => "ui",
+      "shairport-sync" => "airplay", "nqptp" => "ptp", "ampberry-metadata" => "airplay", "ampberry-ui" => "ui",
       "ampberry-control" => "control", "ampberry-redeploy" => "redeploy", "ampberry-wifi-fallback" => "wifi",
       "ampberry-health" => "health", "ampberry-updates" => "update",
       "ampberry-firewall" => "firewall", "ampberry-log" => "log", "avahi-daemon" => "mdns", "NetworkManager" => "network",

@@ -103,19 +103,35 @@ module Ampberry
       true
     end
 
-    # One journal line per meaningful change (feeds the live log behind the UI).
+    # One journal line per transition, as short as it can be (the live log behind the UI):
+    #   ⏵ Blue in Green — Miles Davis · Flo's iPhone   playback starts (client named once per session)
+    #   ⏸ Blue in Green — Miles Davis                  paused
+    #   ⏵ So What — Miles Davis                        resumed, or the track changed while playing
+    #   ⏹ Flo's iPhone                                 session ended (play-end / disconnect)
+    # A connection that has not started playing yet is not a line, nor is metadata arriving before
+    # playback (shairport sends the track before pbeg).
+    PLAY = "⏵"
+    PAUSE = "⏸"
+    STOP = "⏹"
+
     def announce
       st = @parser.state
-      key = [st["active"], st["playing"], st["title"], st["artist"], st["client"]]
+      key = [st["active"], st["playing"], st["title"], st["artist"]]
       return if key == @announced
 
+      was_active = @announced && @announced[0]
+      was_playing = @announced && @announced[1] # a pause line only after we were playing
       @announced = key
+      client = st["client"].to_s
       if !st["active"]
-        Log.info("■ stopped")
-      elsif st["title"].to_s.empty?
-        Log.info("● #{st['client'].to_s.empty? ? 'AirPlay' : st['client']} connected")
-      else
-        Log.info("#{st['playing'] ? '▶' : '❙❙'} #{st['title']}#{st['artist'].to_s.empty? ? '' : " — #{st['artist']}"}#{st['client'].to_s.empty? ? '' : " (#{st['client']})"}")
+        Log.info([STOP, client.empty? ? nil : client].compact.join(" ")) if was_active
+        @client_named = false
+      elsif st["playing"] || was_playing
+        track = [st["title"].to_s, st["artist"].to_s].reject(&:empty?).join(" — ")
+        track = client if track.empty?
+        suffix = (st["playing"] && !@client_named && !client.empty? && track != client) ? " · #{client}" : ""
+        @client_named ||= st["playing"]
+        Log.info("#{st['playing'] ? PLAY : PAUSE} #{track}#{suffix}")
       end
     end
 

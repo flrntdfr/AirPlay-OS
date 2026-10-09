@@ -40,7 +40,7 @@ class LogAggregatorTest < AmpberryTest
     line = @agg.process_line(entry("shairport-sync.service", "  Connection from 192.168.178.40  (\"Flo's iPhone\")  "))
     assert_match(/\A\d\d:\d\d:\d\d airplay  Connection from 192\.168\.178\.40 \("Flo's iPhone"\)\z/, line)
     assert_match(/ control  action settings-apply/, @agg.process_line(entry("ampberry-control@3-1234-5678.service", "action settings-apply (uid 998)")))
-    assert_match(/ track    ▶ Blue in Green/, @agg.process_line(entry("ampberry-metadata.service", "▶ Blue in Green — Miles Davis")))
+    assert_match(/ airplay  \u23F5 Blue in Green/, @agg.process_line(entry("ampberry-metadata.service", "\u23F5 Blue in Green — Miles Davis")))
     assert_match(/ provision/, @agg.process_line(entry("cloud-final.service", "[settings] done (3s)")))
   end
 
