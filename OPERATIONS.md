@@ -365,6 +365,21 @@ on disk, hence "works here"). All the Safari theories were wrong. Fix: both file
 references a Stimulus controller that is not pinned in the importmap — the local/deployed source
 divergence can no longer reach the device silently. `ampberry-v2/result` gitignored.
 
+**Builds 3–11 (00:00–01:00):** label/style iterations from Florent's review, one commit each:
+"Redeploy" label, Apply/Restart as the quiet outline-in-light/secondary-in-dark style, no group
+headings, Yes → Yes → Now arming chain, stats bar without the store path, no overscroll bounce.
+
+**Build 12 (02:20):** Settings without Apply buttons — name saves as you type (0.8 s debounce),
+password gets an eye toggle and a "+" to save, Sound saves 1 s after a change (`autosave_controller`,
+`SettingsController#update` answers JSON for it); tooltips on the sound settings, selects
+right-aligned one per line; Restart card moved above Sound; AirPlay card shows the running
+shairport-sync version (from the store path — the binary's `-V` says 5.5.1 for 5.5.2) with an
+up-to-date badge and "Check for updates" (`Ampberry::Updates`, GitHub releases API, cached in
+`/run/ampberry/updates.json`, `ampberry-updates.timer` daily). New `ampberry-health.timer`: every
+minute `Ampberry::Health` logs `ok · 48°C · cpu 3% · mem 29%` (thermal zone, /proc/stat delta,
+MemAvailable) → shown green in the live log, `DEGRADED` red; log timestamps in the muted colour.
+Tests 73 green. Build 13: timestamp span kept inline (the block rule had hit it).
+
 **23:47 — committed and tagged.** Everything above committed as `decdbb0` on `main`, tagged
 **`v1`** (192 files; secrets/build artefacts verified ignored, staged diff scanned). Redeployed
 from the clean tree: the device now reports **`build 2 · decdbb0`** (`BUILD="2"` in

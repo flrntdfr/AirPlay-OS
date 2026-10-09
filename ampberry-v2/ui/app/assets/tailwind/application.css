@@ -161,7 +161,7 @@
     white-space: pre-wrap; overflow-wrap: anywhere; pointer-events: none;
     display: flex; flex-direction: column; justify-content: flex-end;
   }
-  .log-backdrop span { display: block; min-height: 1.4em; }
+  .log-backdrop > span { display: block; min-height: 1.4em; }
   .log-backdrop .err { color: var(--destructive); font-weight: 600; }
   .log-backdrop .warn { color: var(--warning); }
   .log-backdrop .ok { color: var(--success); }
