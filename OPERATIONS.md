@@ -380,6 +380,11 @@ minute `Ampberry::Health` logs `ok · 48°C · cpu 3% · mem 29%` (thermal zone,
 MemAvailable) → shown green in the live log, `DEGRADED` red; log timestamps in the muted colour.
 Tests 73 green. Build 13: timestamp span kept inline (the block rule had hit it).
 
+**Build 14:** minimal AirPlay status lines in the live log — `⏵ Title — Artist · <client>` (client
+once per session), `⏸ Title — Artist`, `⏵ …` on resume / track change, `⏹ <client>` on session
+end; no line for a bare connection or for metadata arriving before `pbeg` (a pause line only after
+playing). Tagged `airplay` (was `track`). Tests 75 green.
+
 **23:47 — committed and tagged.** Everything above committed as `decdbb0` on `main`, tagged
 **`v1`** (192 files; secrets/build artefacts verified ignored, staged diff scanned). Redeployed
 from the clean tree: the device now reports **`build 2 · decdbb0`** (`BUILD="2"` in
