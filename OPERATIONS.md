@@ -478,4 +478,15 @@ switch. Expect ~10 min and a short audio gap when a real release ships; a Redepl
 Side effect: the Nix store grew 1.5 G → 3.2 G (nixpkgs sources + the build toolchain, not GC
 roots); `sudo nix-collect-garbage` would reclaim it — left as is.
 
+**Build 28 (19:29):** the update control styled as the badge again (tinted pill with ring; the
+two hover labels share one grid cell so the width never changes). All checks passed.
+
+**Build 29 (19:36):** the **player moved into the top bar** — a round play/pause button and one
+truncated "Title · Artist" line between the brand and the tabs, visible only while playing (or
+paused from the bar); the bottom bar, artwork Dialog, progress line and status text are gone
+(`Components::Nav#player`, `player.js` slimmed; `Views::Player::Index` renders nothing — the log
+is the page). Checked in the preview with the playing fixture and a mocked pause; on the device
+the bar serves the player markup, `verify.sh` all checks passed. Not exercised with a live
+AirPlay session yet.
+
 <!-- New entries go above this line -->
