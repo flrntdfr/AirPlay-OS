@@ -34,6 +34,9 @@
       ? (snap.playing ? "Playing" : "Paused") + (snap.client ? " · from " + snap.client : "")
       : "Ready for AirPlay";
     $("toggle").disabled = !snap.active;
+    // the dot in the top bar: green ready, red (bouncing) playing, orange paused, grey unknown
+    const dot = $("live-dot");
+    if (dot) dot.className = "live-dot " + (snap.stale ? "unknown" : !snap.active ? "ready" : snap.playing ? "playing" : "paused");
     renderCover();
     tick();
   }

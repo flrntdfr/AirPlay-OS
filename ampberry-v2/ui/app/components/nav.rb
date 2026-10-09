@@ -1,20 +1,26 @@
 # frozen_string_literal: true
 
-# Top bar, full width: brand at the left edge, the two tabs at the right edge. "Now playing" is the
-# page; "Settings" opens an overlay (RubyUI Sheet) that lazy-loads /settings into a Turbo Frame, so
-# the box is a single page. Wi‑Fi onboarding (/setup) is deliberately not linked — it is reached
-# through the hotspot's captive portal when the box has no network.
+# Top bar, full width, fixed height (the Settings pane hangs below it): brand at the left edge,
+# the two tabs at the right edge. "• Live" is the page — the dot is the receiver's state: green
+# ready for a sender, red (bouncing) while playing, orange while paused, grey when the state is
+# unknown (player.js keeps it current). "Settings" opens a pane under the bar (RubyUI Sheet) that
+# loads /settings into a Turbo Frame, so the box is a single page. Wi‑Fi onboarding (/setup) is
+# deliberately not linked — it is reached through the hotspot's captive portal.
 class Components::Nav < Components::Base
-  def initialize(current:)
+  def initialize(current:, now: {})
     @current = current.to_s
+    @now = now
   end
 
   def view_template
-    header(class: "sticky top-0 z-10 border-b bg-background") do
-      nav(class: "flex w-full items-baseline justify-between gap-4 px-4 py-3") do
+    header(class: "fixed inset-x-0 top-0 z-30 h-12 border-b bg-background") do
+      nav(class: "flex h-full w-full items-center justify-between gap-4 px-4") do
         a(href: root_path, class: "brand font-semibold tracking-tight no-underline") { "Ampberry" }
-        div(class: "flex items-baseline gap-5") do
-          a(href: root_path, class: [TAB, @current == "player" ? TAB_ACTIVE : TAB_IDLE]) { "Now playing" }
+        div(class: "flex items-center gap-5") do
+          a(href: root_path, class: [TAB, @current == "player" ? TAB_ACTIVE : TAB_IDLE]) do
+            span(id: "live-dot", class: "live-dot #{live_state}", aria_hidden: "true") { "•" }
+            plain " Live"
+          end
           settings_sheet
         end
       end
@@ -23,15 +29,22 @@ class Components::Nav < Components::Base
 
   private
 
+  def live_state
+    return "unknown" if @now["stale"]
+    return "ready" unless @now["active"]
+
+    @now["playing"] ? "playing" : "paused"
+  end
+
   def settings_sheet
-    Sheet do
+    Sheet(class: "inline-block") do
       SheetTrigger(class: "inline-block") do
-        button(type: "button", class: [TAB, @current == "settings" ? TAB_ACTIVE : TAB_IDLE]) { "Settings" }
+        button(type: "button", class: [TAB, "cursor-pointer", @current == "settings" ? TAB_ACTIVE : TAB_IDLE]) { "Settings" }
       end
-      # the panel itself never scrolls: the frame is a fixed-height column (rigid title bar and
-      # stats bar, smooth scrolling only in the middle — see Views::Settings::Show)
+      # the pane itself never scrolls: the frame is a fixed-height column (rigid stats bar at the
+      # bottom, smooth scrolling only above it — see Views::Settings::Show)
       SheetContent(side: :right, class: "flex w-full flex-col overflow-hidden p-0 sm:max-w-md") do
-        # eager: the frame lives in the Sheet's <template>, so it loads exactly when the panel opens
+        # eager: the frame lives in the Sheet's <template>, so it loads exactly when the pane opens
         turbo_frame(id: "settings", src: settings_path, loading: "eager", class: "flex h-full min-h-0 flex-col") do
           # spinner until the frame arrives
           div(class: "grid flex-1 place-items-center", role: "status", aria_label: "Loading settings") do

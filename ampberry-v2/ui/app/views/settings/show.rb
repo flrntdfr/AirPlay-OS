@@ -7,10 +7,19 @@
 class Views::Settings::Show < Views::Base
   include Phlex::Rails::Helpers::FormAuthenticityToken
 
+  # Tooltips (title attributes): one per setting, one per stepper button, one per choice.
   TIPS = {
-    "volume_max_db" => "The loudest the amp may go when the phone is at full volume. −6 dB is the listen-tested ceiling; above it the Amp2 clips and shuts down.",
-    "interpolation" => "How shairport-sync stays in sync with the sender: auto picks soxr when the CPU allows, basic drops/duplicates frames, soxr resamples (best quality, more CPU).",
-    "output_format" => "Sample format handed to the DAC. S32_LE is the HiFiBerry's native format; S16_LE is lighter on the CPU."
+    "volume_max_db" => "Maximum volume: the loudest the amp may go when the phone is at full volume, in dB below the DAC's maximum (0 dB). The phone's slider is mapped onto the range below this ceiling, so a lower value makes every phone-volume step quieter and a higher one makes everything louder. −6 dB is the listen-tested ceiling: above it the Amp2 clips and shuts down.",
+    "volume_max_db:down" => "Lower the ceiling by 1 dB: the whole volume range gets a little quieter (full phone volume ≈ 11 % less loud). Safer for the amp and the speakers.",
+    "volume_max_db:up" => "Raise the ceiling by 1 dB: the whole volume range gets a little louder (full phone volume ≈ 12 % louder). Stay at −6 dB or below: above it the Amp2 clips and shuts down.",
+    "interpolation" => "Resampling: how shairport-sync keeps the stream in sync with the phone's clock when the two drift apart.\nauto — soxr when the Pi's CPU allows, basic otherwise (recommended).\nvernier — fine-grained frame insertion/deletion: cheap, less audible than basic.\nsoxr — real resampling, the best quality, the most CPU.\nbasic — drop or repeat single frames: the cheapest, occasionally audible.",
+    "interpolation:auto" => "soxr when the CPU allows, basic otherwise (recommended)",
+    "interpolation:vernier" => "fine-grained frame insertion/deletion: cheap, less audible than basic",
+    "interpolation:soxr" => "real resampling: the best quality, the most CPU",
+    "interpolation:basic" => "drop or repeat single frames: the cheapest, occasionally audible",
+    "output_format" => "Output format: the sample format handed to the DAC.\nS32_LE — 32-bit, the HiFiBerry's native format: the volume is applied with more headroom (recommended).\nS16_LE — 16-bit: lighter on the CPU, a little less precise at low volume.",
+    "output_format:S32_LE" => "32-bit, the HiFiBerry's native format: more headroom for the volume (recommended)",
+    "output_format:S16_LE" => "16-bit: lighter on the CPU, a little less precise at low volume"
   }.freeze
 
   def initialize(settings:, schema:, groups:, flake:, updates:, error: nil, notice: nil, alert: nil, embedded: false)
@@ -25,14 +34,11 @@ class Views::Settings::Show < Views::Base
     @embedded = embedded # inside the Settings overlay (Turbo Frame in a Sheet) vs. a full page
   end
 
-  # The whole page is one Turbo Frame: the Sheet loads it. A fixed-height column: rigid title
-  # bar, rigid stats bar, and only the middle scrolls (smoothly, contained).
+  # The whole page is one Turbo Frame: the Sheet loads it. A fixed-height column: no title bar
+  # (the pane hangs under the top bar, which says "Settings" already), a rigid stats bar at the
+  # bottom, and only the part above it scrolls (smoothly, contained).
   def view_template
     turbo_frame(id: "settings", class: "flex h-full min-h-0 flex-col") do
-      header(class: "flex shrink-0 items-center gap-3 border-b bg-background px-6 py-4") do
-        close_cross
-        Heading(level: 1, size: "5") { "Settings" }
-      end
       div(class: "min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-none px-6 py-6 [-webkit-overflow-scrolling:touch]") do
         Alert(variant: :success) { AlertDescription { @notice } } if @notice.present?
         Alert(variant: :destructive) { AlertDescription { @alert } } if @alert.present?
@@ -50,22 +56,6 @@ class Views::Settings::Show < Views::Base
   end
 
   private
-
-  # In the overlay: closes the Sheet. On the full page: back to the home screen.
-  def close_cross
-    attrs = { class: "-ml-2 grid h-8 w-8 place-items-center rounded-sm text-muted-foreground hover:text-foreground", aria_label: "Close settings" }
-    if @embedded
-      button(type: "button", data: { close_sheet: true, action: "click->ruby-ui--sheet-content#close" }, **attrs) { cross_icon }
-    else
-      a(href: root_path, **attrs) { cross_icon }
-    end
-  end
-
-  def cross_icon
-    svg(viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", stroke_width: "2", stroke_linecap: "round", class: "h-5 w-5", aria_hidden: "true") do |s|
-      s.path(d: "M18 6 6 18M6 6l12 12")
-    end
-  end
 
   def card(title, &)
     Card do
@@ -139,15 +129,15 @@ class Views::Settings::Show < Views::Base
         input(type: "hidden", name: "settings[volume_range_db]", value: @settings["volume_range_db"])
         row("Maximum volume (dB)", tip: TIPS["volume_max_db"]) do
           div(class: "flex items-center gap-2", data: { controller: "stepper" }) do
-            Button(variant: :outline, icon: true, type: :button, aria_label: "Lower by 1 dB", data: { action: "click->stepper#down" }) { "−" }
+            Button(variant: :outline, icon: true, type: :button, aria_label: "Lower by 1 dB", title: TIPS["volume_max_db:down"], data: { action: "click->stepper#down" }) { "−" }
             Input(id: "settings-volume_max_db", type: :number, name: "settings[volume_max_db]", value: @settings["volume_max_db"], min: -30, max: 0, step: 1,
                   inputmode: "numeric", title: TIPS["volume_max_db"], class: "w-24 text-center",
                   data: { stepper_target: "input", action: "input->autosave#changed" })
-            Button(variant: :outline, icon: true, type: :button, aria_label: "Raise by 1 dB", data: { action: "click->stepper#up" }) { "+" }
+            Button(variant: :outline, icon: true, type: :button, aria_label: "Raise by 1 dB", title: TIPS["volume_max_db:up"], data: { action: "click->stepper#up" }) { "+" }
           end
         end
-        row("Resampling", tip: TIPS["interpolation"]) { select_field("settings-interpolation", "settings[interpolation]", @schema["interpolation"][:values], @settings["interpolation"], tip: TIPS["interpolation"]) }
-        row("Output format", tip: TIPS["output_format"]) { select_field("settings-output_format", "settings[output_format]", @schema["output_format"][:values], @settings["output_format"], tip: TIPS["output_format"]) }
+        row("Resampling", tip: TIPS["interpolation"]) { select_field("settings-interpolation", "settings[interpolation]", @schema["interpolation"][:values], @settings["interpolation"], key: "interpolation") }
+        row("Output format", tip: TIPS["output_format"]) { select_field("settings-output_format", "settings[output_format]", @schema["output_format"][:values], @settings["output_format"], key: "output_format") }
       end
     end
   end
@@ -178,17 +168,19 @@ class Views::Settings::Show < Views::Base
     end
   end
 
-  def select_field(id, name, values, current, tip: nil)
-    NativeSelect(id: id, name: name, title: tip, data: { action: "change->autosave#changed" }) do
-      values.each { |v| NativeSelectOption(value: v, selected: (v == current)) { v } }
+  # The select carries the full description of the choices; each option its own one-liner.
+  def select_field(id, name, values, current, key:)
+    NativeSelect(id: id, name: name, title: TIPS[key], data: { action: "change->autosave#changed" }) do
+      values.each { |v| NativeSelectOption(value: v, selected: (v == current), title: TIPS["#{key}:#{v}"]) { v } }
     end
   end
 
-  # What is running: build number (commit count) and flake revision.
+  # What is running: build number (commit count) and the flake source in the Nix store
+  # (/opt/ampberry → /nix/store/…-source).
   def stats
     div(class: "font-mono text-xs [overflow-wrap:anywhere]") do
       span(class: "font-semibold") { "build #{@flake["build"].presence || "dev"}" }
-      span(class: "text-muted-foreground") { " · #{@flake["version"].presence || "unknown"}" }
+      span(class: "text-muted-foreground") { " · #{@flake["path"].presence || @flake["version"].presence || "unknown"}" }
     end
   end
 

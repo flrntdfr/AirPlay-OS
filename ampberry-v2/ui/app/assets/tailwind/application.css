@@ -168,6 +168,16 @@
   .log-backdrop .ts { color: var(--muted-foreground); }
   body.redeploying .brand::after { content: " · redeploying…"; color: var(--destructive); font-weight: 400; }
 
+  /* "• Live": the receiver's state as the colour of the dot (player.js keeps it current) */
+  .live-dot { display: inline-block; font-size: 1.25em; line-height: 0; color: var(--muted-foreground); }
+  .live-dot.ready { @apply text-green-500; }
+  .live-dot.paused { @apply text-amber-500; }
+  .live-dot.playing { @apply text-red-500; animation: live-bounce 1s infinite; }
+  @keyframes live-bounce {
+    0%, 100% { transform: translateY(-25%); animation-timing-function: cubic-bezier(0.8, 0, 1, 1); }
+    50% { transform: none; animation-timing-function: cubic-bezier(0, 0, 0.2, 1); }
+  }
+
   /* no rubber-banding: the document never scrolls on the home screen (the log is its own scroll
      container) and nothing chains to it, so the nav stays put on macOS/iOS */
   html, body { overscroll-behavior: none; }
@@ -175,7 +185,7 @@
   body.player .log-backdrop { overscroll-behavior: none; } /* no bounce past the first/last line */
 
   /* home: the log is the page — full contrast, scrollable back in time, under the nav and above
-     the player bar */
+     the player bar; new lines arrive one per frame (log-backdrop.js), the tail follows them */
   body.player .log-backdrop {
     z-index: 0; display: block; overflow-y: auto; -webkit-overflow-scrolling: touch; pointer-events: auto;
     color: var(--foreground); font-size: 12px;

@@ -38,7 +38,7 @@ class LogAggregatorTest < AmpberryTest
 
   def test_formatting_and_tags
     line = @agg.process_line(entry("shairport-sync.service", "  Connection from 192.168.178.40  (\"Flo's iPhone\")  "))
-    assert_match(/\A\d\d:\d\d:\d\d airplay  Connection from 192\.168\.178\.40 \("Flo's iPhone"\)\z/, line)
+    assert_match(/\A\d{4}-\d\d-\d\d \d\d:\d\d:\d\d airplay  Connection from 192\.168\.178\.40 \("Flo's iPhone"\)\z/, line)
     assert_match(/ control  action settings-apply/, @agg.process_line(entry("ampberry-control@3-1234-5678.service", "action settings-apply (uid 998)")))
     assert_match(/ airplay  \u23F5 Blue in Green/, @agg.process_line(entry("ampberry-metadata.service", "\u23F5 Blue in Green — Miles Davis")))
     assert_match(/ provision/, @agg.process_line(entry("cloud-final.service", "[settings] done (3s)")))
@@ -64,7 +64,7 @@ class LogAggregatorTest < AmpberryTest
     size = File.size(@path)
     assert_operator size, :<=, 2000 + 200, "rotated to roughly the kept tail"
     content = File.read(@path)
-    assert_match(/\A\d\d:\d\d:\d\d log      == log rotated\n/, content)
+    assert_match(/\A\d{4}-\d\d-\d\d \d\d:\d\d:\d\d log      == log rotated\n/, content)
     assert_includes content, "line 39"
     refute_includes content, "line 0 ", "oldest lines dropped"
     assert_equal "644", format("%o", File.stat(@path).mode & 0o777)

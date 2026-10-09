@@ -274,7 +274,7 @@ in
       };
     };
 
-    # ---- health line every minute (→ journal → live log, shown green) -------------------------
+    # ---- health line every quarter hour, on the clock (→ journal → live log, shown green) ------
     systemd.services.ampberry-health = {
       description = "Ampberry health line (temperature, cpu, memory)";
       serviceConfig = {
@@ -285,12 +285,11 @@ in
       };
     };
     systemd.timers.ampberry-health = {
-      description = "Ampberry health line every minute";
+      description = "Ampberry health line at :00 :15 :30 :45";
       wantedBy = [ "timers.target" ];
       timerConfig = {
-        OnBootSec = "30s";
-        OnUnitActiveSec = "1min";
-        AccuracySec = "5s";
+        OnCalendar = "*-*-* *:00/15:00";
+        AccuracySec = "1s"; # on the quarter hour, not somewhere in the following minute
         Unit = "ampberry-health.service";
       };
     };

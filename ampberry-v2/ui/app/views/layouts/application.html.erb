@@ -14,11 +14,12 @@
   <%= javascript_importmap_tags %>
   <link rel="icon" href="<%= asset_path("icon.svg") %>" type="image/svg+xml">
 </head>
-<body class="min-h-dvh bg-background text-foreground antialiased <%= controller_name == "player" ? "player" : "" %>">
+<%# the top bar is fixed (h-12): other pages start below it; home is the log itself %>
+<body class="min-h-dvh bg-background text-foreground antialiased <%= controller_name == "player" ? "player" : "pt-12" %>">
   <%# The live appliance log. Home: the page itself (scrollable history). Elsewhere: a passive,
       still-streaming backdrop behind the content. %>
   <pre id="log-backdrop" class="log-backdrop" aria-hidden="<%= controller_name == "player" ? "false" : "true" %>" data-url="<%= api_log_path %>"></pre>
-  <%= render Components::Nav.new(current: controller_name) %>
+  <%= render Components::Nav.new(current: controller_name, now: AmpberryBridge.now_playing) %>
   <%= render Components::Flash.new(notice: notice, alert: alert) unless controller_name == "settings" %>
   <main class="<%= { "player" => "", "settings" => "mx-auto w-full max-w-2xl" }.fetch(controller_name, "mx-auto w-full max-w-2xl px-4 pb-10") %>"><%= yield %></main>
   <%= javascript_include_tag "log-backdrop" %>

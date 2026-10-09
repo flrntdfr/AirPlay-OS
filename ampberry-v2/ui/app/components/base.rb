@@ -9,7 +9,7 @@ class Components::Base < Phlex::HTML
   register_element :turbo_frame, tag: "turbo-frame"
 
   # The selected tab: no underline, a very subtle glow.
-  TAB = "no-underline text-sm"
+  TAB = "no-underline text-sm cursor-pointer"
   TAB_ACTIVE = "text-foreground font-semibold [text-shadow:0_0_10px_color-mix(in_srgb,currentColor_45%,transparent)]"
   TAB_IDLE = "text-muted-foreground"
   # the quiet buttons (Apply, Restart): the outline look in light mode, stock secondary in dark mode

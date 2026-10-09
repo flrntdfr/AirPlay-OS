@@ -391,4 +391,28 @@ from the clean tree: the device now reports **`build 2 · decdbb0`** (`BUILD="2"
 `/etc/ampberry/release`, generation 15), `verify.sh` all checks passed. From here on every
 commit is a build number; a dirty tree deploys as `dev`.
 
+## 2026-10-09 — Ampberry: build 16 — log tail + dates, quarter-hour health, Settings pane, "• Live"
+
+Florent's fix list, one build. **Log:** the page now loads only the last 100 lines
+(`GET /api/log?tail=100`, a backwards line scan over at most 64 KB) and streams from there; lines
+are appended one per frame (more when a background tab throttles the timer, so the queue never
+lags) and the tail follows unless the reader scrolled up — the old whole-file first request and
+full re-render on every poll are gone. Lines carry the **date** now: `YYYY-MM-DD HH:MM:SS tag
+message` (`LogAggregator#format_line`; the UI accepts both formats, so the existing file needs
+no rewrite). **Health:** `ampberry-health.timer` runs on the clock — `OnCalendar=*-*-* *:00/15:00`,
+`AccuracySec=1s` — instead of every minute from boot. **Top bar / Settings:** the bar is fixed
+(`h-12`, hand cursor on the tabs); the Settings pane hangs **under** it (`top-12`, as does the dimmed
+backdrop, so the bar is never dimmed), appears at once (slide/fade classes removed from
+`SheetContent`), has no title bar and no close cross — a tap on the dimmed area, on empty bar space
+or on the Settings tab again closes it (`sheet_content_controller.js` listens on the bar;
+`sheet_controller#open` toggles). Found in the preview: the opening click was still bubbling when
+the bar listener attached and closed the pane immediately → the trigger is excluded from the bar
+rule. Stats bar keeps the build number and shows the flake's store path instead of the revision.
+**"• Live"** replaces "Now playing": the dot is green when ready for a sender, red and bouncing
+while playing, orange when paused, grey when the snapshot is stale (server-rendered from
+`now-playing.json`, kept current by `player.js`). **Sound tooltips:** full descriptions on the
+setting, on each −/+ button (what moving the ceiling does, ≈ ±11–12 % loudness per dB, the −6 dB
+limit) and on every resampling / output-format choice (`<option title>`). Tests 75 green,
+`nix build .#ampberry-ui` green (renders every page, controllers pinned).
+
 <!-- New entries go above this line -->

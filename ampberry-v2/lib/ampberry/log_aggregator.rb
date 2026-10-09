@@ -63,7 +63,7 @@ module Ampberry
     # Follow the journal forever; restart journalctl if it exits.
     def run
       %w[TERM INT].each { |s| trap(s) { @stop = true } }
-      write_line(format_line(Time.now, "log", "== ampberry log #{Ampberry::VERSION} started (#{Time.now.strftime('%Y-%m-%d')})"))
+      write_line(format_line(Time.now, "log", "== ampberry log #{Ampberry::VERSION} started"))
       until @stop
         r, w = IO.pipe
         pid = Process.spawn(*journalctl_cmd, out: w, err: w, in: File::NULL)
@@ -109,8 +109,9 @@ module Ampberry
       TAGS[unit] || (entry["SYSLOG_IDENTIFIER"] && TAGS[entry["SYSLOG_IDENTIFIER"]])
     end
 
+    # "YYYY-MM-DD HH:MM:SS tag      message" (local time; the UI mutes the timestamp)
     def format_line(time, tag, msg)
-      format("%s %-8s %s", time.strftime("%H:%M:%S"), tag, msg)
+      format("%s %-8s %s", time.strftime("%Y-%m-%d %H:%M:%S"), tag, msg)
     end
 
     def write_line(line)

@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
-// The Settings tab: opens the overlay by cloning the Sheet's <template> into <body>.
-// Only ever one overlay: a second tap while the first is still loading must not stack another.
+// The Settings tab: opens the pane by cloning the Sheet's <template> into <body>; a tap while
+// it is open closes it. Only ever one pane, never a second one stacked on top.
 export default class extends Controller {
   static targets = ["content"]
   static values = { open: false }
@@ -11,7 +11,8 @@ export default class extends Controller {
   }
 
   open() {
-    if (document.querySelector('[data-controller="ruby-ui--sheet-content"]')) return
+    const open = document.querySelector('[data-controller="ruby-ui--sheet-content"]')
+    if (open) { open.remove(); return }
     document.body.insertAdjacentHTML("beforeend", this.contentTarget.innerHTML)
   }
 }

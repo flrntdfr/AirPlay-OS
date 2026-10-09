@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Ampberry
-  # The one-minute appliance health line for the live log (ampberry-health.timer):
+  # The quarter-hourly appliance health line for the live log (ampberry-health.timer, on the clock):
   #   ok · 48.2°C · cpu 3% · mem 29%
   # Reads /sys and /proc only — no privilege, no external commands.
   module Health
