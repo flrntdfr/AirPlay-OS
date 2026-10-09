@@ -142,7 +142,7 @@ class Views::Settings::Show < Views::Base
 
     Card do
       CardContent(class: "pt-2 pb-2") do
-        table(class: "w-full") do
+        table(class: "w-full", data: { controller: "arm" }) do
           tbody { actions.each { |a| render Components::ActionRow.new(action: a) } }
         end
       end
