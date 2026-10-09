@@ -35,6 +35,8 @@ module Ampberry
     hifiberry_user: "/etc/hifiberry.user",
     pi_home: "/home/pi",
     flake: "/opt/ampberry",
+    release: "/etc/ampberry/release",
+    update_flake: "/var/lib/ampberry/shairport-update", # written by `redeploy run --update-shairport`
     system_path: "/etc/ampberry/system-path",
     system_manager_path: "/etc/ampberry/system-manager-path",
     redeploy_log: "/var/log/ampberry/redeploy.log",

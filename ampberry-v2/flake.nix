@@ -28,10 +28,10 @@
       ];
       forDev = nixpkgs.lib.genAttrs devSystems;
 
-      version = self.shortRev or self.dirtyShortRev or "dev";
+      selfVersion = self.shortRev or self.dirtyShortRev or "dev";
       # Build number = number of commits in the repo: human-sized, monotonic, easy to bump to or
       # roll back to. Nix only knows it for a clean checkout; a dirty tree deploys as "dev".
-      build = if self ? revCount then toString self.revCount else "dev";
+      selfBuild = if self ? revCount then toString self.revCount else "dev";
 
       # The network the appliance lives on. Not a secret, so it belongs here, not in secrets.env.
       network = {
@@ -40,8 +40,10 @@
         hotspotCidr = "10.42.0.0/24"; # NetworkManager shared mode default
       };
 
+      # `version` names the tools/UI derivations; passing the same one keeps them byte-identical
+      # (no rebuild on the device when the flake is consumed as an input, see lib.withShairport).
       pkgsFor =
-        system:
+        system: version:
         let
           pkgs = nixpkgs.legacyPackages.${system};
           unstable = nixpkgs-unstable.legacyPackages.${system};
@@ -60,7 +62,49 @@
           };
         };
 
-      targetPkgs = pkgsFor target;
+      targetPkgs = pkgsFor target selfVersion;
+
+      # The appliance configuration; `shairport` = { src, version } swaps in another
+      # shairport-sync release (the on-device "Update" button).
+      mkSystem =
+        {
+          version ? selfVersion,
+          build ? selfBuild,
+          shairport ? null,
+        }:
+        let
+          p = pkgsFor target version;
+          shairportPkg =
+            if shairport == null then
+              p.shairport-sync-airplay2
+            else
+              p.pkgs.callPackage ./nix/packages/shairport-sync.nix {
+                inherit (p) unstable;
+                shairportSrc = shairport.src;
+                shairportVersion = shairport.version;
+              };
+        in
+        system-manager.lib.makeSystemConfig {
+          modules = [
+            ./nix/system/ampberry.nix
+            ./nix/system/firewall.nix
+            ./nix/system/branding.nix
+          ];
+          specialArgs = {
+            ampberry = {
+              shairport-sync-airplay2 = shairportPkg;
+              inherit (p)
+                nqptp
+                ampberry-tools
+                ampberry-ui
+                ;
+              inherit version build network;
+              flakeSource = self;
+              # the system-manager CLI for the device, built with the same nixpkgs as the closure
+              systemManager = system-manager.packages.${target}.default;
+            };
+          };
+        };
     in
     {
       # Packages for the device (aarch64-linux) and, for local development/validation, the dev
@@ -68,7 +112,7 @@
       packages = nixpkgs.lib.genAttrs (nixpkgs.lib.unique (devSystems ++ [ target ])) (
         system:
         let
-          p = pkgsFor system;
+          p = pkgsFor system selfVersion;
         in
         {
           inherit (p) ampberry-tools ampberry-ui;
@@ -83,27 +127,26 @@
       #   system-manager switch --flake .#ampberry --target-host pi@ampberry.local --sudo
       # or, on the device itself (first boot / Clean reboot),
       #   system-manager switch --store-path $(cat /etc/ampberry/system-path)
-      systemConfigs.ampberry = system-manager.lib.makeSystemConfig {
-        modules = [
-          ./nix/system/ampberry.nix
-          ./nix/system/firewall.nix
-          ./nix/system/branding.nix
-        ];
-        specialArgs = {
-          ampberry = {
-            inherit (targetPkgs)
-              shairport-sync-airplay2
-              nqptp
-              ampberry-tools
-              ampberry-ui
-              ;
-            inherit version build network;
-            flakeSource = self;
-            # the system-manager CLI for the device, built with the same nixpkgs as the closure
-            systemManager = system-manager.packages.${target}.default;
+      systemConfigs.ampberry = mkSystem { };
+
+      # The same appliance with a newer shairport-sync release on top. The device's "Update"
+      # button writes a tiny flake (/var/lib/ampberry/shairport-update) that takes this flake as
+      # an input and calls this with the release tarball; build/flakeVersion are passed through
+      # because a flake consumed as a `path:` input has no git metadata of its own.
+      lib.withShairport =
+        {
+          src,
+          version,
+          build ? selfBuild,
+          flakeVersion ? selfVersion,
+        }:
+        {
+          systemConfigs.ampberry = mkSystem {
+            inherit build;
+            version = flakeVersion;
+            shairport = { inherit src version; };
           };
         };
-      };
 
       checks.${target} = {
         # The Perl test suite runs as part of the package build (doCheck); this exposes it.

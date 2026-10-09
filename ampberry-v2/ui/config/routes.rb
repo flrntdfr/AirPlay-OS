@@ -9,6 +9,7 @@ Rails.application.routes.draw do
   get "settings", to: "settings#show"
   post "settings", to: "settings#update" # JSON when asked for (autosave), redirect otherwise
   post "updates/check", to: "updates#check", as: :updates_check
+  get "updates/status", to: "updates#status", as: :updates_status
 
   get "setup", to: "setup#show"
   post "setup/scan", to: "setup#scan"

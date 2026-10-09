@@ -58,6 +58,26 @@ module AmpberryBridge
     nil
   end
 
+  # The background job (Redeploy / Update): its world-readable state file.
+  def redeploy_state
+    st = JSON.parse(File.read(Ampberry.path(:redeploy_state)))
+    st.slice("state", "kind", "started_at", "finished_at", "error")
+  rescue Errno::ENOENT, JSON::ParserError
+    { "state" => "idle" }
+  end
+
+  # The hardware address of the network interface (Wi‑Fi first, then Ethernet), from /sys;
+  # nil when neither exists (the build sandbox, the Mac).
+  def mac_address
+    %w[wlan0 eth0].each do |iface|
+      mac = File.read(File.join(Ampberry.root, "/sys/class/net/#{iface}/address")).strip
+      return mac if mac.match?(/\A(?:[0-9a-f]{2}:){5}[0-9a-f]{2}\z/i) && mac != "00:00:00:00:00:00"
+    rescue SystemCallError
+      next
+    end
+    nil
+  end
+
   # The receiver's AirPlay name, from the rendered (world-readable) shairport-sync.conf — the
   # settings store itself is root-only, and asking the control socket on every page load would
   # log an action each time. nil when the file is missing or has no name.

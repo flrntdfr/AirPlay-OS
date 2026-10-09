@@ -73,7 +73,8 @@
       hot = running;
       document.body.classList.toggle("redeploying", running);
       if (lastRedeploy && (lastRedeploy === "running" || lastRedeploy === "starting") && !running) {
-        append((state === "done" ? "✓ redeploy finished" : "✗ redeploy " + state + (d.redeploy.error ? ": " + d.redeploy.error : "")) + "\n");
+        const job = d.redeploy.kind === "update-shairport" ? "shairport-sync update" : "redeploy";
+        append((state === "done" ? "✓ " + job + " finished" : "✗ " + job + " " + state + (d.redeploy.error ? ": " + d.redeploy.error : "")) + "\n");
       }
       lastRedeploy = state;
     } catch (e) { /* UI restarting (a redeploy restarts it): keep what we have */ }

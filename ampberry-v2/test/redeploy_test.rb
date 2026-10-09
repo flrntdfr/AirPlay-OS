@@ -73,6 +73,65 @@ class RedeployTest < AmpberryTest
     assert_equal "failed", JSON.parse(slurp(R.state_path))["state"]
   end
 
+  def test_start_update_passes_the_release_to_the_job
+    with_runner(->(cmd, _o) { cmd.first == "systemctl" ? { status: 3, out: "inactive\n" } : { status: 0 } }) do
+      st = R.start(reason: "test", update: { "version" => "5.5.3", "tag" => "5.5.3" })
+      run = cmds.find { |c| c.start_with?("systemd-run") }
+      assert_match(/ampberry redeploy run --update-shairport 5\.5\.3 5\.5\.3\z/, run)
+      assert_equal "update-shairport", st["kind"]
+    end
+    e = assert_raises(Ampberry::Error) { R.start(update: { "version" => "5.5.3; rm -rf /" }) }
+    assert_match(/bad version/, e.message)
+  end
+
+  def test_run_update_writes_the_override_flake_locks_it_and_switches_from_it
+    src = File.join(ROOT, "nix/store/abc-source/ampberry-v2")
+    FileUtils.mkdir_p(src)
+    spit(Ampberry.path(:release), "NAME=\"Ampberry\"\nFLAKE_VERSION=\"647bf3b\"\nBUILD=\"24\"\n")
+    sm_dir = File.join(ROOT, "fake-sm-update")
+    FileUtils.mkdir_p("#{sm_dir}/bin")
+    File.write("#{sm_dir}/bin/system-manager", "#!/bin/sh\necho \"system-manager $*\"\n")
+    File.chmod(0o755, "#{sm_dir}/bin/system-manager")
+    nix = File.join(ROOT, "fake-nix.sh")
+    File.write(nix, "#!/bin/sh\necho \"nix $*\"\n")
+    File.chmod(0o755, nix)
+    refresh = File.join(ROOT, "fake-refresh.sh")
+    File.write(refresh, "#!/bin/sh\necho refreshed\n")
+    File.chmod(0o755, refresh)
+
+    assert R.run(flake: src, system_manager: sm_dir, nix: nix, provision_cmd: [refresh], update: { "version" => "5.5.3", "tag" => "5.5.3" })
+    dir = Ampberry.path(:update_flake)
+    flake = slurp(File.join(dir, "flake.nix"))
+    assert_includes flake, "path:#{File.realpath(File.dirname(src))}?dir=ampberry-v2", "the shipped flake is the input (store copy, subdirectory)"
+    assert_includes flake, "github:mikebrady/shairport-sync/5.5.3"
+    assert_includes flake, 'version = "5.5.3"'
+    assert_includes flake, 'build = "24"'
+    assert_includes flake, 'flakeVersion = "647bf3b"'
+    log = slurp(R.log_path)
+    assert_includes log, "nix flake lock #{dir}"
+    assert_includes log, "system-manager switch --flake #{dir}#ampberry"
+    assert_match(/== update-shairport finished in \d+s/, log)
+    st = JSON.parse(slurp(R.state_path))
+    assert_equal %w[done update-shairport], [st["state"], st["kind"]]
+  end
+
+  def test_action_update_shairport_needs_a_known_newer_release
+    ids = Ampberry::Actions.list(path: "/nonexistent").map { |a| a["id"] }
+    assert_includes ids, "update-shairport"
+    mkdirs("run/ampberry")
+    spit(Ampberry.path(:updates), JSON.generate("running" => "5.5.2", "latest" => "5.5.2", "up_to_date" => true))
+    r = Ampberry::Actions.run_action("update-shairport")
+    refute r["ok"]
+    assert_match(/no newer/, r["error"])
+    spit(Ampberry.path(:updates), JSON.generate("running" => "5.5.2", "latest" => "5.6.0", "latest_tag" => "5.6.0", "up_to_date" => false))
+    with_runner(->(cmd, _o) { cmd.first == "systemctl" ? { status: 3, out: "inactive\n" } : { status: 0 } }) do
+      r = Ampberry::Actions.run_action("update-shairport")
+      assert r["ok"], r["error"]
+      assert_equal "update-shairport", r["result"]["kind"]
+      assert_match(/--update-shairport 5\.6\.0 5\.6\.0\z/, cmds.find { |c| c.start_with?("systemd-run") })
+    end
+  end
+
   def test_action_redeploy_is_exposed
     ids = Ampberry::Actions.list(path: "/nonexistent").map { |a| a["id"] }
     assert_includes ids, "redeploy"

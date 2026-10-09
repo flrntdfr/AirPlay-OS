@@ -22,12 +22,13 @@ class Views::Settings::Show < Views::Base
     "output_format:S16_LE" => "16-bit: lighter on the CPU, a little less precise at low volume"
   }.freeze
 
-  def initialize(settings:, schema:, groups:, flake:, updates:, error: nil, notice: nil, alert: nil, embedded: false)
+  def initialize(settings:, schema:, groups:, flake:, updates:, mac: nil, error: nil, notice: nil, alert: nil, embedded: false)
     @settings = settings
     @schema = schema
     @groups = groups
     @flake = flake
     @updates = updates
+    @mac = mac
     @error = error
     @notice = notice
     @alert = alert
@@ -87,6 +88,8 @@ class Views::Settings::Show < Views::Base
             end
           end
         end
+        # the box's hardware address (how the phone's AirPlay list tells receivers apart)
+        p(class: "font-mono text-xs text-muted-foreground") { "MAC: #{@mac}" } if @mac
         version_line
       end
     end
@@ -103,20 +106,49 @@ class Views::Settings::Show < Views::Base
 
   # "shairport-sync 5.5.2 · ✓ up to date · Check for updates" — the badge is rewritten in place
   # by updates_controller.js; the daily timer keeps the cached answer fresh on its own.
+  # The update button, one fixed size, its colour is the state: green "✓ up to date", red
+  # "↑ 5.6.0 available" (or "✗ check failed"), grey when never checked. Hovering turns it grey and
+  # offers the action ("Check now" / "Update now"); a tap runs it with a spinner ("Checking…" /
+  # "Updating…"). updates_controller.js drives it: check = POST /updates/check; update = the
+  # update-shairport action (builds the release on top of the flake, switches, audio stops for
+  # the switch — no confirmation), then polls /updates/status until the job is done.
+  UPDATE_BUTTON = "group inline-flex h-7 w-40 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-md px-2 text-xs font-medium transition-colors disabled:cursor-default"
+  UPDATE_TONES = {
+    "ok" => "bg-green-600 text-white hover:bg-muted hover:text-foreground",
+    "available" => "bg-red-600 text-white hover:bg-muted hover:text-foreground",
+    "error" => "bg-red-600 text-white hover:bg-muted hover:text-foreground",
+    "unknown" => "bg-muted text-foreground hover:bg-muted/70",
+    "busy" => "bg-muted text-muted-foreground"
+  }.freeze
+  UPDATE_LABELS = { # state => [at rest, on hover]
+    "ok" => ["✓ up to date", "Check now"],
+    "available" => ["↑ %s available", "Update now"],
+    "error" => ["✗ check failed", "Check now"],
+    "unknown" => ["Check for updates", "Check now"]
+  }.freeze
+
   def version_line
-    base = "inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset"
-    ok = "text-success bg-success/10 ring-success/20"
-    warn = "text-warning bg-warning/10 ring-warning/20"
-    text, tone =
-      if @updates["error"] then ["✗ check failed", warn]
-      elsif @updates["up_to_date"] then ["✓ up to date", ok]
-      elsif @updates["latest"] then ["↑ #{@updates["latest"]} available", warn]
-      else ["not checked yet", "text-muted-foreground bg-muted ring-border"]
+    state =
+      if @updates["error"] then "error"
+      elsif @updates["up_to_date"] then "ok"
+      elsif @updates["latest"] then "available"
+      else "unknown"
       end
-    div(class: "flex flex-wrap items-center gap-x-3 gap-y-1 pt-1 text-xs text-muted-foreground", data: { controller: "updates", updates_url_value: updates_check_path }) do
+    rest, hover = UPDATE_LABELS[state]
+    div(class: "flex flex-wrap items-center gap-x-3 gap-y-2 pt-1 text-xs text-muted-foreground",
+        data: { controller: "updates", updates_check_url_value: updates_check_path, updates_status_url_value: updates_status_path,
+                updates_apply_url_value: "#{api_actions_path}/update-shairport", updates_state_value: state,
+                updates_latest_value: @updates["latest"].to_s, updates_tones_value: UPDATE_TONES.to_json, updates_labels_value: UPDATE_LABELS.to_json }) do
       span { "shairport-sync #{@updates["running"].presence || "?"}" }
-      span(class: [base, tone], data: { updates_target: "badge", base: base, ok: ok, warn: warn }) { text }
-      a(href: @updates["releases_url"] || "#", class: "underline underline-offset-4", data: { updates_target: "link", action: "click->updates#check" }) { "Check for updates" }
+      button(type: "button", class: [UPDATE_BUTTON, UPDATE_TONES[state]], title: @updates["error"].to_s,
+             data: { updates_target: "button", base: UPDATE_BUTTON, action: "click->updates#tap" }) do
+        svg(class: "hidden h-3.5 w-3.5 animate-spin", viewBox: "0 0 24 24", fill: "none", aria_hidden: "true", data: { updates_target: "spinner" }) do |s|
+          s.circle(cx: "12", cy: "12", r: "10", stroke: "currentColor", stroke_width: "3", class: "opacity-25")
+          s.path(d: "M22 12a10 10 0 0 1-10 10", stroke: "currentColor", stroke_width: "3", stroke_linecap: "round")
+        end
+        span(class: "group-hover:hidden", data: { updates_target: "rest" }) { rest.sub("%s", @updates["latest"].to_s) }
+        span(class: "hidden group-hover:inline", data: { updates_target: "hover" }) { hover }
+      end
     end
   end
 

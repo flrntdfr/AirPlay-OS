@@ -30,7 +30,8 @@ USAGE = <<~USAGE
     control handle                                        one request on STDIN (systemd socket activation)
     metadata daemon                                       shairport-sync pipe → /run/ampberry/now-playing.json
     log aggregate                                         journal → /var/log/ampberry.log (the UI backdrop)
-    redeploy start|run|status                             re-apply the flake (/opt/ampberry) + provision, in the background
+    redeploy start|run|status [--update-shairport VER]    re-apply the flake (/opt/ampberry) + provision, in the background
+                                                          (--update-shairport: that release on top of the flake instead)
     health [--json]                                       one health line (cpu · mem · temp; DEGRADED · … when unwell) → journal / live log
     updates check|status                                  shairport-sync: running vs latest release (cached)
     version | help
@@ -225,16 +226,23 @@ end
 
 def cmd_redeploy(args)
   sub = args.shift || "status"
+  # start|run [--update-shairport VERSION [TAG]]: a shairport-sync release on top of the flake
+  update = nil
+  if args.first == "--update-shairport"
+    args.shift
+    version = args.shift or usage(2, "--update-shairport needs a version")
+    update = { "version" => version, "tag" => args.shift || version }
+  end
   case sub
   when "status" then out_json(Ampberry::Redeploy.status)
   when "start"
     need_root!
     Ampberry::Log.init("redeploy")
-    out_json(Ampberry::Redeploy.start(reason: "cli"))
+    out_json(Ampberry::Redeploy.start(reason: "cli", update: update))
   when "run"
     need_root!
     Ampberry::Log.init("redeploy")
-    Ampberry::Redeploy.run ? 0 : 1
+    Ampberry::Redeploy.run(update: update) ? 0 : 1
   else usage(2, "unknown redeploy subcommand '#{sub}'")
   end
 end

@@ -37,6 +37,18 @@ module Ampberry
       "redeploy" => { label: "Redeploy", params: {}, confirm: true, danger: true,
                       description: "Re-applies the Nix flake from /opt/ampberry (system-manager switch) and re-runs provisioning in the background; the log streams behind the page.",
                       code: ->(_p) { Redeploy.start(reason: "web ui") } },
+      # The Update button: builds the release the last check found, on top of the shipped flake,
+      # and switches to it (audio stops for the switch). Nothing to confirm; a Redeploy reverts.
+      "update-shairport" => { label: "Update shairport-sync", params: {},
+                              description: "Builds the latest shairport-sync release (as found by the update check) on top of the shipped flake and switches to it in the background. Redeploy returns to the pinned version.",
+                              code: lambda { |_p|
+                                u = Updates.status
+                                unless u["latest"] && u["up_to_date"] == false
+                                  raise Ampberry::Error, "no newer shairport-sync release is known — check for updates first"
+                                end
+
+                                Redeploy.start(reason: "web ui", update: { "version" => u["latest"], "tag" => u["latest_tag"] || u["latest"] })
+                              } },
       "clean-reboot" => { label: "Clean reboot (re-provision)", params: { "reset_settings" => :bool }, confirm: true, danger: true,
                           code: lambda { |p|
                             System.clean_reboot(reset_settings: p["reset_settings"] ? true : false, no_reboot: true)

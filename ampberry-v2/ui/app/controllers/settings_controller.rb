@@ -24,6 +24,7 @@ class SettingsController < ApplicationController
       error: (res["error"] unless res["ok"]),
       flake: { "build" => release["BUILD"], "version" => release["FLAKE_VERSION"], "path" => AmpberryBridge.flake_path },
       updates: Ampberry::Updates.status,
+      mac: AmpberryBridge.mac_address,
       notice: flash[:notice],
       alert: flash[:alert],
       embedded: turbo_frame_request?

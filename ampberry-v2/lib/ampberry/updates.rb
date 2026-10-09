@@ -33,22 +33,27 @@ module Ampberry
         nil
       end
 
-      def latest_version
+      # { "version" => "5.5.2", "tag" => "5.5.2" } — the tag is what the update job fetches.
+      def latest_release
         status, body = (http || DEFAULT_HTTP).call(URI(LATEST_URL))
         raise Ampberry::Error, "GitHub answered HTTP #{status}" unless status == 200
 
-        tag = JSON.parse(body)["tag_name"].to_s.delete_prefix("v")
+        tag = JSON.parse(body)["tag_name"].to_s
         raise Ampberry::Error, "no release tag in GitHub's answer" if tag.empty?
 
-        tag
+        { "version" => tag.delete_prefix("v"), "tag" => tag }
       end
+
+      def latest_version = latest_release["version"]
 
       # Fetch, compare, cache. Never raises: a failed check is recorded as such.
       def check(now: Time.now)
         result = { "running" => running_version, "checked_at" => now.utc.iso8601, "releases_url" => RELEASES_URL }
         begin
-          latest = latest_version
+          release = latest_release
+          latest = release["version"]
           result["latest"] = latest
+          result["latest_tag"] = release["tag"]
           result["up_to_date"] = result["running"] ? Gem::Version.new(result["running"]) >= Gem::Version.new(latest) : nil
         rescue StandardError => e
           result["error"] = e.message

@@ -25,7 +25,7 @@ module Api
         end
       end
       render json: { "from" => from, "to" => from + chunk.bytesize, "size" => size,
-                     "chunk" => chunk.dup.force_encoding("UTF-8").scrub, "redeploy" => redeploy_state }
+                     "chunk" => chunk.dup.force_encoding("UTF-8").scrub, "redeploy" => AmpberryBridge.redeploy_state }
     end
 
     private
@@ -43,13 +43,6 @@ module Api
         pos = nl
       end
       start + pos + 1
-    end
-
-    def redeploy_state
-      st = JSON.parse(File.read(Ampberry.path(:redeploy_state)))
-      st.slice("state", "started_at", "finished_at", "error")
-    rescue Errno::ENOENT, JSON::ParserError
-      { "state" => "idle" }
     end
   end
 end
