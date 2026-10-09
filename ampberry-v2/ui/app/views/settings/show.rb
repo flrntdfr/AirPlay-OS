@@ -106,19 +106,20 @@ class Views::Settings::Show < Views::Base
 
   # "shairport-sync 5.5.2 · ✓ up to date · Check for updates" — the badge is rewritten in place
   # by updates_controller.js; the daily timer keeps the cached answer fresh on its own.
-  # The update button, one fixed size, its colour is the state: green "✓ up to date", red
-  # "↑ 5.6.0 available" (or "✗ check failed"), grey when never checked. Hovering turns it grey and
-  # offers the action ("Check now" / "Update now"); a tap runs it with a spinner ("Checking…" /
-  # "Updating…"). updates_controller.js drives it: check = POST /updates/check; update = the
-  # update-shairport action (builds the release on top of the flake, switches, audio stops for
-  # the switch — no confirmation), then polls /updates/status until the job is done.
-  UPDATE_BUTTON = "group inline-flex h-7 w-40 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-md px-2 text-xs font-medium transition-colors disabled:cursor-default"
+  # The update badge (the small tinted pill): green "✓ up to date", red "↑ 5.6.0 available" (or
+  # "✗ check failed"), grey when never checked. Hovering turns it grey and offers the action
+  # ("Check now" / "Update now") — the two labels share one grid cell, so the pill keeps its
+  # width; a tap runs it with a spinner ("Checking…" / "Updating…"). updates_controller.js
+  # drives it: check = POST /updates/check; update = the update-shairport action (builds the
+  # release on top of the flake, switches, audio stops for the switch — no confirmation), then
+  # polls /updates/status until the job is done.
+  UPDATE_BUTTON = "group inline-flex cursor-pointer items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset transition-colors disabled:cursor-default"
   UPDATE_TONES = {
-    "ok" => "bg-green-600 text-white hover:bg-muted hover:text-foreground",
-    "available" => "bg-red-600 text-white hover:bg-muted hover:text-foreground",
-    "error" => "bg-red-600 text-white hover:bg-muted hover:text-foreground",
-    "unknown" => "bg-muted text-foreground hover:bg-muted/70",
-    "busy" => "bg-muted text-muted-foreground"
+    "ok" => "text-success bg-success/10 ring-success/20 hover:text-muted-foreground hover:bg-muted hover:ring-border",
+    "available" => "text-destructive bg-destructive/10 ring-destructive/20 hover:text-muted-foreground hover:bg-muted hover:ring-border",
+    "error" => "text-destructive bg-destructive/10 ring-destructive/20 hover:text-muted-foreground hover:bg-muted hover:ring-border",
+    "unknown" => "text-muted-foreground bg-muted ring-border hover:text-foreground",
+    "busy" => "text-muted-foreground bg-muted ring-border"
   }.freeze
   UPDATE_LABELS = { # state => [at rest, on hover]
     "ok" => ["✓ up to date", "Check now"],
@@ -146,8 +147,10 @@ class Views::Settings::Show < Views::Base
           s.circle(cx: "12", cy: "12", r: "10", stroke: "currentColor", stroke_width: "3", class: "opacity-25")
           s.path(d: "M22 12a10 10 0 0 1-10 10", stroke: "currentColor", stroke_width: "3", stroke_linecap: "round")
         end
-        span(class: "group-hover:hidden", data: { updates_target: "rest" }) { rest.sub("%s", @updates["latest"].to_s) }
-        span(class: "hidden group-hover:inline", data: { updates_target: "hover" }) { hover }
+        span(class: "inline-grid text-center") do # both labels in one cell: the pill is as wide as the longer one
+          span(class: "col-start-1 row-start-1 group-hover:invisible", data: { updates_target: "rest" }) { rest.sub("%s", @updates["latest"].to_s) }
+          span(class: "invisible col-start-1 row-start-1 group-hover:visible", data: { updates_target: "hover" }) { hover }
+        end
       end
     end
   end
