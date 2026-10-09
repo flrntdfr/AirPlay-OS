@@ -7,17 +7,16 @@
 class Views::Settings::Show < Views::Base
   include Phlex::Rails::Helpers::FormAuthenticityToken
 
-  # Tooltips (title attributes): one per setting, one per stepper button, one per choice.
+  # Help for the sound settings: shown by the (?) next to each label (hover or tap, see help/1)
+  # and as the title of every choice.
   TIPS = {
-    "volume_max_db" => "Maximum volume: the loudest the amp may go when the phone is at full volume, in dB below the DAC's maximum (0 dB). The phone's slider is mapped onto the range below this ceiling, so a lower value makes every phone-volume step quieter and a higher one makes everything louder. −6 dB is the listen-tested ceiling: above it the Amp2 clips and shuts down.",
-    "volume_max_db:down" => "Lower the ceiling by 1 dB: the whole volume range gets a little quieter (full phone volume ≈ 11 % less loud). Safer for the amp and the speakers.",
-    "volume_max_db:up" => "Raise the ceiling by 1 dB: the whole volume range gets a little louder (full phone volume ≈ 12 % louder). Stay at −6 dB or below: above it the Amp2 clips and shuts down.",
-    "interpolation" => "Resampling: how shairport-sync keeps the stream in sync with the phone's clock when the two drift apart.\nauto — soxr when the Pi's CPU allows, basic otherwise (recommended).\nvernier — fine-grained frame insertion/deletion: cheap, less audible than basic.\nsoxr — real resampling, the best quality, the most CPU.\nbasic — drop or repeat single frames: the cheapest, occasionally audible.",
+    "volume_max_db" => "The loudest the amp may go when the phone is at full volume, in dB below the DAC's maximum (0 dB). The phone's slider is mapped onto the range below this ceiling: 1 dB lower makes everything about 11 % quieter, 1 dB higher about 12 % louder. −6 dB is the listen-tested ceiling — above it the Amp2 clips and shuts down.",
+    "interpolation" => "How shairport-sync keeps the stream in sync with the phone's clock when the two drift apart.\nauto — soxr when the Pi's CPU allows, basic otherwise (recommended).\nvernier — fine-grained frame insertion/deletion: cheap, less audible than basic.\nsoxr — real resampling, the best quality, the most CPU.\nbasic — drop or repeat single frames: the cheapest, occasionally audible.",
     "interpolation:auto" => "soxr when the CPU allows, basic otherwise (recommended)",
     "interpolation:vernier" => "fine-grained frame insertion/deletion: cheap, less audible than basic",
     "interpolation:soxr" => "real resampling: the best quality, the most CPU",
     "interpolation:basic" => "drop or repeat single frames: the cheapest, occasionally audible",
-    "output_format" => "Output format: the sample format handed to the DAC.\nS32_LE — 32-bit, the HiFiBerry's native format: the volume is applied with more headroom (recommended).\nS16_LE — 16-bit: lighter on the CPU, a little less precise at low volume.",
+    "output_format" => "The sample format handed to the DAC.\nS32_LE — 32-bit, the HiFiBerry's native format: the volume is applied with more headroom (recommended).\nS16_LE — 16-bit: lighter on the CPU, a little less precise at low volume.",
     "output_format:S32_LE" => "32-bit, the HiFiBerry's native format: more headroom for the volume (recommended)",
     "output_format:S16_LE" => "16-bit: lighter on the CPU, a little less precise at low volume"
   }.freeze
@@ -128,13 +127,9 @@ class Views::Settings::Show < Views::Base
       autosave_form(delay: 1000) do
         input(type: "hidden", name: "settings[volume_range_db]", value: @settings["volume_range_db"])
         row("Maximum volume (dB)", tip: TIPS["volume_max_db"]) do
-          div(class: "flex items-center gap-2", data: { controller: "stepper" }) do
-            Button(variant: :outline, icon: true, type: :button, aria_label: "Lower by 1 dB", title: TIPS["volume_max_db:down"], data: { action: "click->stepper#down" }) { "−" }
-            Input(id: "settings-volume_max_db", type: :number, name: "settings[volume_max_db]", value: @settings["volume_max_db"], min: -30, max: 0, step: 1,
-                  inputmode: "numeric", title: TIPS["volume_max_db"], class: "w-24 text-center",
-                  data: { stepper_target: "input", action: "input->autosave#changed" })
-            Button(variant: :outline, icon: true, type: :button, aria_label: "Raise by 1 dB", title: TIPS["volume_max_db:up"], data: { action: "click->stepper#up" }) { "+" }
-          end
+          # the number field's own stepper (min/max/step), nothing else
+          Input(id: "settings-volume_max_db", type: :number, name: "settings[volume_max_db]", value: @settings["volume_max_db"], min: -30, max: 0, step: 1,
+                inputmode: "numeric", class: "w-24 text-center", data: { action: "input->autosave#changed" })
         end
         row("Resampling", tip: TIPS["interpolation"]) { select_field("settings-interpolation", "settings[interpolation]", @schema["interpolation"][:values], @settings["interpolation"], key: "interpolation") }
         row("Output format", tip: TIPS["output_format"]) { select_field("settings-output_format", "settings[output_format]", @schema["output_format"][:values], @settings["output_format"], key: "output_format") }
@@ -162,9 +157,23 @@ class Views::Settings::Show < Views::Base
 
   # label left, control right, one line (wraps only if it must)
   def row(label, tip: nil)
-    div(class: "flex flex-wrap items-center justify-between gap-x-4 gap-y-2") do
-      FormFieldLabel(title: tip) { label }
+    div(class: "relative flex flex-wrap items-center justify-between gap-x-4 gap-y-2") do
+      div(class: "flex items-center gap-1.5") do
+        FormFieldLabel { label }
+        help(tip) if tip
+      end
       div(class: "ml-auto") { yield }
+    end
+  end
+
+  # A small (?) that shows its help on hover, and on focus (a tap on the phone): CSS only,
+  # no JavaScript, no library. The popover is positioned against the row (relative), under
+  # it and from its left edge, never wider than the row — so it stays inside the pane.
+  def help(text)
+    span(class: "group/help inline-flex") do
+      button(type: "button", aria_label: "Help", class: "grid h-4 w-4 cursor-help place-items-center rounded-full border text-[10px] font-semibold leading-none text-muted-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring") { "?" }
+      span(role: "tooltip",
+           class: "invisible absolute left-0 top-full z-20 mt-1 w-72 max-w-full whitespace-pre-line rounded-md border bg-popover px-3 py-2 text-xs leading-snug text-popover-foreground shadow-md group-hover/help:visible group-focus-within/help:visible") { text }
     end
   end
 
