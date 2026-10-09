@@ -7,15 +7,18 @@
 # loads /settings into a Turbo Frame, so the box is a single page. Wi‑Fi onboarding (/setup) is
 # deliberately not linked — it is reached through the hotspot's captive portal.
 class Components::Nav < Components::Base
-  def initialize(current:, now: {})
+  # name: the receiver's AirPlay name — the brand at the left is the box's own name (a saved
+  # rename in Settings updates it in place, autosave_controller.js)
+  def initialize(current:, now: {}, name: "Ampberry")
     @current = current.to_s
     @now = now
+    @name = name.presence || "Ampberry"
   end
 
   def view_template
     header(class: "fixed inset-x-0 top-0 z-30 h-12 border-b bg-background") do
       nav(class: "flex h-full w-full items-center justify-between gap-4 px-4") do
-        a(href: root_path, class: "brand font-semibold tracking-tight no-underline") { "Ampberry" }
+        a(href: root_path, class: "brand font-semibold tracking-tight no-underline", data: { brand: true }) { @name }
         div(class: "flex items-center gap-5") do
           a(href: root_path, class: [TAB, @current == "player" ? TAB_ACTIVE : TAB_IDLE]) do
             span(id: "live-dot", class: "live-dot #{live_state}", aria_hidden: "true") { "•" }

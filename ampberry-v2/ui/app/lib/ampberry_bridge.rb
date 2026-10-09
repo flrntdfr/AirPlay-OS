@@ -57,4 +57,17 @@ module AmpberryBridge
   rescue SystemCallError
     nil
   end
+
+  # The receiver's AirPlay name, from the rendered (world-readable) shairport-sync.conf — the
+  # settings store itself is root-only, and asking the control socket on every page load would
+  # log an action each time. nil when the file is missing or has no name.
+  def airplay_name
+    File.foreach(Rails.configuration.x.shairport_conf) do |line|
+      m = line.match(/\A\s*name\s*=\s*"((?:[^"\\]|\\.)*)"\s*;/)
+      return m[1].gsub(/\\(.)/, '\1') if m
+    end
+    nil
+  rescue SystemCallError
+    nil
+  end
 end

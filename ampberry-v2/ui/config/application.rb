@@ -44,5 +44,6 @@ module AmpberryUi
     config.x.actions_file = ENV.fetch("AMPBERRY_ACTIONS_FILE", "/etc/ampberry/actions.json")
     config.x.release_file = ENV.fetch("AMPBERRY_RELEASE_FILE", "/etc/ampberry/release")
     config.x.flake_link = ENV.fetch("AMPBERRY_FLAKE_LINK", "/opt/ampberry")
+    config.x.shairport_conf = ENV.fetch("AMPBERRY_SHAIRPORT_CONF", "/etc/shairport-sync.conf")
   end
 end

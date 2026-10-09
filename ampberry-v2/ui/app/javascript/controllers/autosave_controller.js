@@ -2,8 +2,9 @@ import { Controller } from "@hotwired/stimulus"
 
 // Save a settings form without an Apply button: fields with
 // data-action="input->autosave#changed" (or change->) save `delay` ms after the last change;
-// `save` posts right away (the "+" next to the password); Enter submits through the same path.
-// POST goes to the form's action with Accept: application/json → { ok, error }.
+// Enter submits through the same path. POST goes to the form's action with
+// Accept: application/json → { ok, error }. A saved AirPlay name also renames the brand in the
+// top bar ([data-brand]) — the box is called what the receiver is called.
 // Connects to data-controller="autosave" on the <form>.
 export default class extends Controller {
   static targets = ["status"]
@@ -32,6 +33,8 @@ export default class extends Controller {
       const res = await r.json()
       if (res.ok) {
         this.show("Saved", true)
+        const name = form.elements["settings[name]"]
+        if (name && name.value.trim()) document.querySelectorAll("[data-brand]").forEach((el) => { el.textContent = name.value.trim() })
         form.dispatchEvent(new CustomEvent("autosave:saved", { bubbles: true }))
       } else {
         this.show("✗ " + (res.error || r.status))

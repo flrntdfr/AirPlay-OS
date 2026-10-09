@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
-# Settings, in this order: AirPlay (name saves as you type; password with an eye and a "+"),
+# Settings, in this order: AirPlay (name and password save 1 s after the last keystroke; the
+# password has an eye toggle; a saved name also renames the brand in the top bar),
 # Restart AirPlay, Sound (saves 1 s after a change), Reboot + Redeploy (armed by "Yes" boxes).
 # No Apply buttons, no help text (tooltips on the sound settings). No volume control here on
 # purpose: the phone sets the level, `volume_max_db` is the ceiling.
@@ -63,27 +64,26 @@ class Views::Settings::Show < Views::Base
     end
   end
 
-  # ---- AirPlay: name (saves as you type), password (eye + "+"), version + update status --------
+  # ---- AirPlay: name and password (save 1 s after typing), version + update status -------------
 
   def airplay_card
     card("AirPlay") do
       div(class: "space-y-5") do
-        autosave_form(delay: 800) do
+        autosave_form(delay: 1000) do
           field("settings[name]", "Name") do |id|
             Input(id: id, name: "settings[name]", value: @settings["name"], maxlength: 40, required: true, autocomplete: "off",
                   data: { action: "input->autosave#changed" })
           end
         end
-        autosave_form(delay: 0) do
+        autosave_form(delay: 1000) do
           field("settings[password]", "Password") do |id|
             div(class: "flex items-center gap-2", data: { controller: "reveal" }) do
               Input(id: id, type: :password, name: "settings[password]", value: @settings["password"], maxlength: 64,
-                    autocomplete: "off", class: "flex-1", data: { reveal_target: "input" })
+                    autocomplete: "off", class: "flex-1", data: { reveal_target: "input", action: "input->autosave#changed" })
               Button(variant: :ghost, icon: true, type: :button, aria_label: "Show or hide the password", data: { action: "click->reveal#toggle" }) do
                 eye_icon(on: true)
                 eye_icon(on: false)
               end
-              Button(**QUIET_BUTTON, icon: true, type: :button, aria_label: "Save the password", data: { action: "click->autosave#save" }) { "+" }
             end
           end
         end
