@@ -18,7 +18,7 @@ class HealthTest < AmpberryTest
     assert_equal 48.2, s["temperature_c"]
     assert_equal 30, s["mem_percent"] # (926512 - 650000) / 926512
     assert_equal 0, s["cpu_percent"]  # two identical samples: no busy time
-    assert_equal "ok · 48.2°C · cpu 0% · mem 30%", H.line(s)
+    assert_equal "ok · cpu 0% · mem 30% · 48.2°C", H.line(s)
   end
 
   def test_cpu_busy_share_between_samples
@@ -33,7 +33,7 @@ class HealthTest < AmpberryTest
     File.write(File.join(ROOT, "sys/class/thermal/thermal_zone0/temp"), "85000\n")
     s = H.sample(interval: 0)
     refute s["ok"]
-    assert_match(/\ADEGRADED · 85.0°C/, H.line(s))
+    assert_match(/\ADEGRADED · cpu .* · 85.0°C\z/, H.line(s))
     File.unlink(File.join(ROOT, "sys/class/thermal/thermal_zone0/temp"))
     s = H.sample(interval: 0)
     assert s["ok"]

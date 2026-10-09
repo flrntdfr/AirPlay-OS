@@ -2,7 +2,7 @@
 
 module Ampberry
   # The quarter-hourly appliance health line for the live log (ampberry-health.timer, on the clock):
-  #   ok · 48.2°C · cpu 3% · mem 29%
+  #   ok · cpu 3% · mem 29% · 48.2°C
   # Reads /sys and /proc only — no privilege, no external commands.
   module Health
     TEMP_WARN_C = 80.0
@@ -20,9 +20,9 @@ module Ampberry
       def line(s)
         [
           s["ok"] ? "ok" : "DEGRADED",
-          s["temperature_c"] ? "#{s["temperature_c"]}°C" : "temp n/a",
           "cpu #{s["cpu_percent"] ? "#{s["cpu_percent"]}%" : "n/a"}",
-          "mem #{s["mem_percent"] ? "#{s["mem_percent"]}%" : "n/a"}"
+          "mem #{s["mem_percent"] ? "#{s["mem_percent"]}%" : "n/a"}",
+          s["temperature_c"] ? "#{s["temperature_c"]}°C" : "temp n/a"
         ].join(" · ")
       end
 
