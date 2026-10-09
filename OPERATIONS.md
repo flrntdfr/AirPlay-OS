@@ -422,4 +422,7 @@ uncommitted README/Dockerfile draft, which would have made the build `dev`): dev
 reads `build 16 · /nix/store/…-source/ampberry-v2`, `verify.sh` all checks passed. Not
 listen-tested (no AirPlay session at the time).
 
+**Build 18 (18:32):** health line reordered to `ok · cpu 24% · mem 31% · 44.0°C` (`Health.line`,
+`136026b`; 17 was the docs commit). Deployed the same way, `verify.sh` all checks passed.
+
 <!-- New entries go above this line -->
