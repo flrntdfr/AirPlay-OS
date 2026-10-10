@@ -603,4 +603,33 @@ the log container is `height: 100dvh` from the top. Footer: `v40` over the store
 `pb-[max(1.25rem,env(safe-area-inset-bottom))]`. Deployed `2145e7f` to **Ampberry and
 HifiBerry** from one clean worktree; both `BUILD="40"`, both `verify.sh` all checks passed.
 
+## 2026-10-10 — CI/CD: every push to main → release vN with the flashable image
+
+Florent: a GitHub workflow that builds and tests on arm, publishes the image as a release —
+every commit is a build, every build is a version, the release view minimal: `vN` as the title,
+one asset, a `link` to paste into Raspberry Pi Imager. Commit `83e662a`:
+
+- `.github/workflows/release.yml`: `test` (Ruby 3.4 suite on ubuntu) → `build` on
+  `ubuntu-24.04-arm` (native aarch64): Determinate Nix, `nix build` of `ampberry-tools`,
+  `ampberry-ui` (their checks run inside) and both `systemConfigs`, then
+  `GENERIC=1 tools/build-image.sh`, then `softprops/action-gh-release` creates tag + release
+  `vN` (N = `git rev-list --count HEAD` — the same number the device shows) with `name: vN`,
+  `body: [link](…/releases/download/vN/airplay-os-vN.img.xz)` and the image as its only file.
+- The released image must not carry Florent's secrets, so the image pipeline grew a **generic
+  mode**: no cloud-init seed of ours (pi-gen's stock one stays, so the Raspberry Pi Imager's
+  customization — user, SSH key, Wi‑Fi, hostname — applies), a new pi-gen stage
+  `05-firstboot` installs `airplay-os-firstboot.service` which activates the baked closure
+  (`system-manager switch --store-path`), writes a default hotspot passphrase (`airplay-os`) if
+  none, runs `ampberry provision`, and marks `/var/lib/ampberry/activated`; image-level branding
+  is "AirPlay OS" + `VERSION` + `DEVICE`; the baked device is `AIRPLAY_OS_DEVICE` (ampberry by
+  default); `pi-gen/config` names the image `airplay-os`; the personal image (seed from
+  `secrets.env`) still works without `GENERIC`.
+- **Validated locally** (Docker, arm64 native, 17:53–17:59 — stages 0–2 cached, the closure
+  came from the Nix cache in 2 min): `build/pi-gen/deploy/image_2026-10-10-airplay-os-lite.img.xz`
+  (850 MB), log shows "generic image: no cloud-init seed of our own" and "first-boot activation
+  unit installed". A stale `pigen_work` container had to be removed first. Not boot-tested on
+  hardware. **Not pushed** — running the workflow is Florent's push. The repository is **private**: GitHub's
+  hosted `ubuntu-24.04-arm` runners are free on public repositories and a paid larger-runner on
+  private ones; alternatives are making the repo public or a self-hosted arm64 runner (this Mac).
+
 <!-- New entries go above this line -->
