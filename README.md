@@ -15,8 +15,8 @@ Claude skill
 If you prefer to flash the device:
 
 ```bash
-# Fetch the latest version (v11)
-wget -O /tmp/airplay-os.img.xz https://github.com/flrntdfr/AirPlay-OS/releases/download/v11/airplay-os.img.xz
+# Fetch the latest version
+wget -O /tmp/airplay-os.img.xz https://github.com/flrntdfr/AirPlay-OS/releases/latest/download/airplay-os.img.xz
 
 # Flash to drive
 dd /tmp/airplay-os.img.xz /dev/to/your/sd/card

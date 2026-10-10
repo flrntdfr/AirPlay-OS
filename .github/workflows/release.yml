@@ -1,11 +1,13 @@
-# Every commit on main is a build (bump.yml starts it), every build is a version: vN with N = the commit count
+# Every commit on main is a build, every build is a version: vN with N = the commit count
 # (the same number the device shows in Settings). The job tests, builds the flake natively on
 # arm64, builds the flashable image with pi-gen, and publishes release vN with exactly one
 # asset — the image — and one line in the body: the link to paste into Raspberry Pi Imager.
 name: release
 
 on:
-  workflow_dispatch: # started by bump.yml once the README points at this build
+  push:
+    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: write
