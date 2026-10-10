@@ -489,4 +489,17 @@ is the page). Checked in the preview with the playing fixture and a mocked pause
 the bar serves the player markup, `verify.sh` all checks passed. Not exercised with a live
 AirPlay session yet.
 
+## 2026-10-10 — Ampberry: build 31 — "stuck on Checking…" report
+
+Florent reported the update badge staying on "Checking…" after a tap, even once the pointer
+left. Could not reproduce: a real session + CSRF token from the Pi itself answers
+`POST /updates/check` in 0.3 s (GitHub resolves IPv4-only from the Pi, 0.25 s), the flow completes
+in Chrome (preview) and in real WebKit (iOS Simulator, iPhone Air, Safari — both the green
+"Check now" path and the red "Update now" path). The Pi's UI journal shows no check request that
+failed. Build 31 makes the badge robust anyway: the check/update POSTs abort after 20 s, so a
+request the server never answers (UI restarting mid-deploy, network gone) ends in "✗ check
+failed" instead of a permanent "Checking…". `verify.sh` all checks passed. Simulator finding:
+a 0.1 s "tap" does not register as a click in WebKit, a plain tap does — testing artefact, not a
+UI bug. Also seen: ⏸ renders as an emoji on iOS (⏵ as a glyph) — cosmetic, left for later.
+
 <!-- New entries go above this line -->
