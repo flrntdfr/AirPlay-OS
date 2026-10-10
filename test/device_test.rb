@@ -4,7 +4,11 @@ require_relative "test_helper"
 
 # devices/<id>.json → /etc/ampberry/device.json: what the tools derive from it.
 class DeviceTest < AmpberryTest
-  def teardown = Ampberry.reset_device!
+  # the written definition must not leak into the other tests (the suite runs in random order)
+  def teardown
+    File.unlink(Ampberry.path(:device)) if File.exist?(Ampberry.path(:device))
+    Ampberry.reset_device!
+  end
 
   def write_device(hash)
     spit(Ampberry.path(:device), JSON.generate(hash))

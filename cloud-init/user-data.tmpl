@@ -1,5 +1,5 @@
 #cloud-config
-# Ampberry first-boot / re-provision configuration (Raspberry Pi OS Lite, cloud-init NoCloud).
+# AirPlay OS first-boot / re-provision configuration (one device: devices/<id>.json) (Raspberry Pi OS Lite, cloud-init NoCloud).
 # Rendered by tools/build-user-data.rb from this template; the double-brace placeholders come from secrets.env
 # and are never committed. The same file is used for a fresh image (pi-gen) and for a
 # "Clean reboot" of a running device (cloud-init clean --logs + reboot).
@@ -9,7 +9,7 @@
 # `ampberry provision` for everything the flake cannot express (boot config, sshd reload,
 # shairport conf, firewall, leftovers, Wi-Fi check).
 
-hostname: ampberry
+hostname: {{HOSTNAME}}
 manage_etc_hosts: true
 timezone: {{TIMEZONE}}
 keyboard:
@@ -76,4 +76,4 @@ runcmd:
   # 3. Runtime provisioning (idempotent).
   - [ /run/system-manager/sw/bin/ampberry, provision ]
 
-final_message: "Ampberry is up after $UPTIME seconds — http://ampberry.local/"
+final_message: "{{PRETTY_NAME}} is up after $UPTIME seconds — http://{{HOSTNAME}}.local/"

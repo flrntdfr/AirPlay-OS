@@ -15,7 +15,7 @@ ssh pi@192.168.178.244        # Ethernet (DHCP lease)
 |---|---|
 | Device id | `hifiberry` |
 | Board | Raspberry Pi 4 Model B Rev 1.2 — aarch64, ~1.8 GB RAM, 14 GB SD |
-| HAT | HiFiBerry DAC+ (pcm512x, line-out, no amplifier) — announced by its HAT EEPROM, so **no overlay line** in config.txt |
+| HAT | HiFiBerry DAC+ (pcm512x, line-out, no amplifier) — `dtoverlay=hifiberry-dacplus-std` (what hbos wrote; the old note about EEPROM detection was wrong — checked 2026-10-10) |
 | Network | Ethernet `eth0`, DHCP lease `192.168.178.244` (MAC `dc:a6:32:b3:8b:c8`); Wi‑Fi and Bluetooth **disabled** (`dtoverlay=disable-wifi`, `disable-bt`) |
 | Downstream | external amplifier / powered speakers via RCA (gear: to be documented) |
 | Users | `pi` (sudo, SSH keys) |
@@ -33,8 +33,8 @@ ssh pi@192.168.178.244        # Ethernet (DHCP lease)
 The same in-place path Ampberry took on 2026-10-08 (`tools/apply-live.sh`, interactive, every
 destructive step asks): backup off the device → stop and purge the hbos stack (all players,
 PipeWire, the HiFiBerry repo) → install Nix → `system-manager switch --flake .#hifiberry` →
-`ampberry provision` (config.txt: audio off, I2C on, radios off — no HAT overlay, EEPROM keeps
-announcing the DAC+) → reboot → `DEVICE=hifiberry tools/verify.sh` → listen-test.
+`ampberry provision` (config.txt: audio off, the `hifiberry-dacplus-std` overlay, I2C on, both
+radios off) → reboot → `DEVICE=hifiberry tools/verify.sh` → listen-test.
 
 What changes for this unit: AirPlay 2 only (no Spotify Connect, Roon, LMS, MPD, Bluetooth, no
 PipeWire EQ); `volume_max_db` default **0 dB** (line-out at full scale, the amp has the knob);

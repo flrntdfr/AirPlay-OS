@@ -29,6 +29,7 @@ stdenvNoCC.mkDerivation {
         "bin"
         "test"
         "etc"
+        "devices" # the test suite checks every device definition
       ];
   };
 

@@ -50,7 +50,7 @@ if [[ $HARVEST == 1 ]]; then
 	[[ -f secrets.env ]] || { echo "secrets.env missing (copy secrets.env.example)"; exit 1; }
 	keys="$(remote 'cat ~/.ssh/authorized_keys' | grep -E '^(ssh-|ecdsa-|sk-)' || true)"
 	hash="$(remote 'sudo getent shadow pi | cut -d: -f2')"
-	remote 'sudo cat /boot/firmware/network-config' > build/network-config.device
+	remote 'sudo cat /boot/firmware/network-config 2>/dev/null' > build/network-config.device || true  # Ethernet-only boxes have none
 	{
 		grep -vE '^(SSH_AUTHORIZED_KEYS|PI_PASSWORD_HASH)=' secrets.env
 		printf "SSH_AUTHORIZED_KEYS='%s'\n" "$keys"
@@ -71,8 +71,8 @@ if [[ "$(remote 'ss -tnH state established "( sport = :5000 or sport = :7000 )" 
 	echo "AirPlay session in progress on the device."; confirm "Continue anyway (playback will stop)?"
 fi
 say "rendering the cloud-init seed"
-nix shell nixpkgs#ruby_3_4 --command ruby tools/build-user-data.rb --out build --secrets "$SECRETS"
-cp build/network-config.device build/network-config # byte-identical to the running profile (netplan/NM)
+nix shell nixpkgs#ruby_3_4 --command ruby tools/build-user-data.rb --device "$DEVICE" --out build --secrets "$SECRETS"
+[[ -s build/network-config.device ]] && cp build/network-config.device build/network-config # byte-identical to the running profile when the device has one
 
 if [[ $FROM_SWITCH == 0 ]]; then
 # ---- 2. backup --------------------------------------------------------------------------------
