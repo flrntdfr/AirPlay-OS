@@ -1,5 +1,5 @@
 {
-  description = "AirPlay as Flake. AirPlay receiver appliance managed with Nix";
+  description = "AirPlay as Flake the AirPlay receiver appliance.";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
@@ -24,7 +24,6 @@
       devSystems = [
         "aarch64-darwin"
         "aarch64-linux"
-        "x86_64-linux"
       ];
       forDev = nixpkgs.lib.genAttrs devSystems;
       lib = nixpkgs.lib;
