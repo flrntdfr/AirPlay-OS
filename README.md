@@ -18,8 +18,8 @@ You already have an appliance connected to the network, use the skill:
 If you prefer to flash the device:
 
 ```
-# Fetch the latest version (v1)
-wget -O /tmp/airplay-os.img.xz https://github.com/flrntdfr/AirPlay-OS/releases/download/v1/airplay-os.img.xz
+# Fetch the latest version (v2)
+wget -O /tmp/airplay-os.img.xz https://github.com/flrntdfr/AirPlay-OS/releases/download/v2/airplay-os.img.xz
 
 # Flash to drive
 dd /tmp/airplay-os.img.xz /dev/to/your/sd/card
