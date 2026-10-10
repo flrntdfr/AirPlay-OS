@@ -105,10 +105,13 @@ module Ampberry
         buf
       end
 
+      # The request was answered — also when the answer is a refusal: that is the client's
+      # error, not the handler's, so the transient unit exits 0 (a non-zero exit left every
+      # refused action behind as a "failed" ampberry-control@ instance).
       def respond(output, data)
         output.write("#{JSON.generate(data)}\n")
         output.flush if output.respond_to?(:flush)
-        data["ok"] ? 0 : 1
+        0
       end
     end
 

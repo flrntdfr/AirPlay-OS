@@ -165,6 +165,9 @@ in
       # template cannot be restarted (activation would log "error reloading")
       restartIfChanged = false;
       stopIfChanged = false;
+      # CollectMode is a [Unit] setting: in [Service] systemd ignored it and every instance that
+      # exited non-zero lingered as "failed" (and tripped verify.sh's "no failed units")
+      unitConfig.CollectMode = "inactive-or-failed";
       serviceConfig = {
         ExecStart = "${tools}/bin/ampberry control handle";
         StandardInput = "socket";
@@ -172,7 +175,6 @@ in
         StandardError = "journal";
         User = "root";
         TimeoutStartSec = "3600";
-        CollectMode = "inactive-or-failed";
       };
     };
 
