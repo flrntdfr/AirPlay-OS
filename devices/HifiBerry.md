@@ -29,7 +29,7 @@ http://HifiBerry.local/       # web UI: live log + player · Settings pane
 
 | | | since |
 |---|---|---|
-| AirPlay OS | **build 38** · `ce6c9b7`¹ | 2026-10-10 |
+| AirPlay OS | **build 40** · `2145e7f`¹ (migrated at build 38, `ce6c9b7`) | 2026-10-10 |
 | shairport-sync | 5.5.2 (AirPlay 2, ALSA, soxr, Avahi, metadata pipe) | 2026-10-10 |
 | nqptp | 1.2.8 | 2026-10-10 |
 | nixpkgs | 26.05 `7c8764b` · unstable `e7439b6` (audio only) · system-manager release-26.05 `8c7a4b8` | 2026-10-10 |

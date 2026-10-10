@@ -27,7 +27,7 @@ http://ampberry.local/       # web UI: live log + player · Settings pane
 
 | | | since |
 |---|---|---|
-| AirPlay OS | **build 37** · `7488d26`¹ (first build from the root-level flake; `v34` = build 34, `95d580f`) | 2026-10-10 |
+| AirPlay OS | **build 40** · `2145e7f`¹ (`v34` = build 34, `95d580f`) | 2026-10-10 |
 | shairport-sync | 5.5.2 (AirPlay 2, ALSA, soxr, Avahi, metadata pipe) | 2026-10-08 |
 | nqptp | 1.2.8 | 2026-10-08 |
 | nixpkgs | 26.05 `7c8764b` · unstable `e7439b6` (audio only) · system-manager release-26.05 `8c7a4b8` | 2026-10-08 |
