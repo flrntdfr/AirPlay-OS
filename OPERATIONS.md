@@ -592,4 +592,15 @@ rooted; services unaffected, store size unchanged). Seen in the mDNS browse: Amp
 announces itself as **"AirPlay OS"** — its AirPlay name was changed from the Settings pane (not by
 this session). `v35` waits for the listen-test.
 
+**Build 40 (17:50), both devices.** Florent: the Settings footer should read `vX` (the version)
+with the store path on its own line and more bottom padding on rounded screens; the log should
+be exactly the screen height on the phone — he had to scroll to see the bottom. The second one
+was a WebKit bug caught with the iPhone simulator: the log followed its tail in Chrome but on
+WebKit the follow switched itself off mid-load (scroll events arrive late and an assigned
+`scrollTop` is reported before clamping, so every position check "saw" the reader scrolling).
+Following is now input-based: only a wheel or a finger stops it, reaching the bottom resumes it;
+the log container is `height: 100dvh` from the top. Footer: `v40` over the store path,
+`pb-[max(1.25rem,env(safe-area-inset-bottom))]`. Deployed `2145e7f` to **Ampberry and
+HifiBerry** from one clean worktree; both `BUILD="40"`, both `verify.sh` all checks passed.
+
 <!-- New entries go above this line -->

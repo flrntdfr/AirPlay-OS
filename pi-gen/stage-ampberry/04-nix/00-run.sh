@@ -1,5 +1,5 @@
 #!/bin/bash -e
-# Install Nix into the image and pre-build the Ampberry system closure, so first boot only
+# Install Nix into the image and pre-build the system closure of the image's device (AIRPLAY_OS_DEVICE), so first boot only
 # activates (no compiling on the Pi 3). Runs inside pi-gen's arm64 chroot (native on Apple
 # Silicon). Activation itself needs a running systemd, so it is done at first boot by
 # cloud-init's runcmd (see cloud-init/user-data.tmpl): system-manager switch --store-path.
@@ -38,7 +38,7 @@ set -e
 export PATH=/nix/var/nix/profiles/default/bin:\$PATH
 export NIX_REMOTE=
 install -d /nix/var/nix/gcroots /etc/ampberry
-nix build --no-link --print-out-paths "path:/usr/local/src/ampberry#systemConfigs.ampberry" > /etc/ampberry/system-path
+nix build --no-link --print-out-paths "path:/usr/local/src/ampberry#systemConfigs.${AIRPLAY_OS_DEVICE:-ampberry}" > /etc/ampberry/system-path
 # the system-manager CLI is part of the closure (environment.systemPackages): record it from there
 sw=\$(nix-store -qR "\$(cat /etc/ampberry/system-path)" | grep -- '-system-manager-path\$' | head -1)
 sm=\$(readlink -f "\$sw/bin/system-manager"); echo "\${sm%/bin/system-manager}" > /etc/ampberry/system-manager-path

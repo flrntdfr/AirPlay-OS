@@ -16,7 +16,10 @@
 
 ### Flash the SD Card
 
-- Use the Raspberry pi imager and this URL
+- Use the Raspberry pi imager and this URL — every commit on `main` becomes a release `vN`
+  ([releases](https://github.com/flrntdfr/AirPlay-OS/releases)); right-click its `link`, copy, and
+  paste it in the Imager (Use custom). The Imager's customization (user, SSH key, Wi‑Fi,
+  hostname) applies as usual; the image activates itself on first boot.
 - If using wireless AirPlay:
   - Connect to the wifi named "Bonjour" (only advertised 1h after boot stop unless connected to wifi)
   - open https://ampberry.local and setup wifi
