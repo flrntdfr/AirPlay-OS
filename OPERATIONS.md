@@ -524,5 +524,40 @@ shown) → `respond` exits 0 (the request was answered; the error is the client'
 `CollectMode=inactive-or-failed` moved from [Service] (ignored, "Unknown key") to [Unit] so
 instances that do fail are collected. Deployed 16:41: the same refused switch now leaves no
 failed unit, no "Unknown key" warning in the journal, `verify.sh` all checks passed.
+**Tagged `v34`** (build 34, `95d580f`); `v35` waits for Florent's confirmation.
+
+## 2026-10-10 — repo → "AirPlay OS": flake at the root, devices as definitions + records
+
+Florent: treat the project as an OS for Raspberry Pis and deploy it on HifiBerry too; the `.md`
+files just track installations and versions. Done in two commits (`dc0e493`, `7488d26`):
+
+- `ampberry-v2/*` moved to the repo root (`git mv`, history kept); the old root README (the
+  "Infrastructure as Context" framing) removed, Florent's "AirPlay OS" README draft is the README
+  (with a Devices table and a "what works today (Nix)" section added); `AGENTS.md` rewritten;
+  `docs/architecture.md` holds the technical reference that used to live in `Ampberry.md`.
+- **Devices** = `devices/<id>.json` (id, hostname, pretty name, board, HAT, overlay, radios,
+  primary interface, address, LAN, shairport-sync defaults) + `devices/<Id>.md` installation
+  records. The flake reads the JSON (`systemConfigs.<id>`, `lib.withShairport { device }`,
+  `devices` output) and ships it as `/etc/ampberry/device.json` + `defaults.json`; the Ruby tools
+  read it back (`Ampberry.device`): config.txt lines (overlay or none, `disable-bt`,
+  `disable-wifi`), pretty hostname, the Wi‑Fi provisioning step, the redeploy flake attribute;
+  the Wi‑Fi fallback timer, the captive dnsmasq conf and the hotspot firewall rules exist only for
+  `"wifi": true`; branding (release file now has `DEVICE=`), MOTD interface and URL per device.
+  `etc/ampberry/defaults.json` is gone (generated from the device).
+- `devices/hifiberry.json`: Pi 4B + DAC+, `"wifi": false`, `volume_max_db` 0 dB, overlay
+  `hifiberry-dacplus-std` — **the old HifiBerry.md claimed EEPROM auto-detection; the box's
+  config.txt says `dtoverlay=hifiberry-dacplus-std`** (hbos wrote it). Record corrected.
+- Tools: `DEVICE=<id>` for `verify.sh` (reads device.json from the box: per-device unit, overlay
+  and radio checks, mDNS name) and `apply-live.sh` (`.#<id>`, host alias, tolerant of a missing
+  network-config); `build-user-data.rb --device <id>` (hostname / pretty name from the
+  definition, no Wi‑Fi section and no Wi‑Fi secrets required for an Ethernet-only box);
+  `build-image.sh` copies the repo root. Test `device_test.rb` (86 green; run with four seeds).
+- **Build 36 failed** on the Linux builder: the tools package runs the suite in the sandbox,
+  where `devices/` was not part of the filtered source and a test had left an Ethernet-only
+  `device.json` behind for the others (random order). Both fixed. **Build 37 (17:25)** deployed:
+  `DEVICE="ampberry"`, `/opt/ampberry` → the store copy of the repo root, `device.json` on the
+  box, Wi‑Fi timer active, hotspot rules present, Settings footer `build 37 · /nix/store/…-source`,
+  `DEVICE=ampberry tools/verify.sh` all checks passed. Nothing on HifiBerry touched: its
+  migration purges the whole hbos stack and waits for Florent's go.
 
 <!-- New entries go above this line -->
