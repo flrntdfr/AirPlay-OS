@@ -1,0 +1,14 @@
+# AirPlay OS — never commit secrets or rendered artefacts
+secrets.env
+build/
+result
+*.swp
+.DS_Store
+
+# Rails UI: local gem install + build artefacts (Tailwind output is produced by the Nix build)
+ui/vendor/bundle/
+ui/app/assets/builds/
+ui/tmp/
+ui/log/
+ui/.bundle/
+.claude/launch.json

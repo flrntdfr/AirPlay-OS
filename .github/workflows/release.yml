@@ -1,0 +1,76 @@
+# Every commit on main is a build, every build is a version: vN with N = the commit count
+# (the same number the device shows in Settings). The job tests, builds the flake natively on
+# arm64, builds the flashable image with pi-gen, and publishes release vN with exactly one
+# asset — the image — and one line in the body: the link to paste into Raspberry Pi Imager.
+name: release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4"
+      - name: Ruby test suite
+        run: ruby -Ilib -Itest -e 'Dir["test/*_test.rb"].sort.each { |f| require File.expand_path(f) }'
+
+  build:
+    needs: test
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # the build number is the commit count (self.revCount)
+
+      - name: Version
+        id: v
+        run: |
+          n=$(git rev-list --count HEAD)
+          echo "number=$n" >> "$GITHUB_OUTPUT"
+          echo "tag=v$n" >> "$GITHUB_OUTPUT"
+          echo "asset=airplay-os-v$n.img.xz" >> "$GITHUB_OUTPUT"
+          echo "AirPlay OS v$n ($GITHUB_SHA)"
+
+      - uses: DeterminateSystems/nix-installer-action@v16
+
+      - name: Build the flake (tools + UI run their tests; both device systems)
+        run: |
+          nix build --print-build-logs .#ampberry-tools .#ampberry-ui
+          nix build --print-build-logs .#systemConfigs.ampberry .#systemConfigs.hifiberry
+
+      - name: Build the image (pi-gen, generic — no secrets)
+        env:
+          GENERIC: "1"
+          AIRPLAY_OS_VERSION: ${{ steps.v.outputs.tag }}
+        run: tools/build-image.sh
+
+      - name: Name the asset
+        id: img
+        run: |
+          img=$(ls -t build/pi-gen/deploy/*airplay-os*.img.xz | head -1)
+          mv "$img" "build/${{ steps.v.outputs.asset }}"
+          ls -la "build/${{ steps.v.outputs.asset }}"
+          sha256sum "build/${{ steps.v.outputs.asset }}"
+
+      - name: Release ${{ steps.v.outputs.tag }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.v.outputs.tag }}
+          name: ${{ steps.v.outputs.tag }}
+          body: "[link](https://github.com/${{ github.repository }}/releases/download/${{ steps.v.outputs.tag }}/${{ steps.v.outputs.asset }})"
+          files: build/${{ steps.v.outputs.asset }}
+          make_latest: true

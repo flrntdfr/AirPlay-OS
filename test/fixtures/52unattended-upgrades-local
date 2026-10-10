@@ -1,0 +1,14 @@
+// Local policy for HiFiBerry audio appliance (Ampberry).
+// SECURITY UPDATES ONLY. The HiFiBerry repo (debianrepo.hifiberry.com) and the
+// Raspberry Pi kernel/firmware repo (archive.raspberrypi.com) are intentionally
+// NOT auto-upgraded -- those are applied manually with a listen-test afterward.
+// Debian stable base/point-release updates are also left for manual review.
+#clear Unattended-Upgrade::Origins-Pattern;
+Unattended-Upgrade::Origins-Pattern {
+        "origin=Debian,codename=${distro_codename},label=Debian-Security";
+        "origin=Debian,codename=${distro_codename}-security,label=Debian-Security";
+};
+Unattended-Upgrade::Automatic-Reboot "true";
+Unattended-Upgrade::Automatic-Reboot-Time "04:00";
+Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";
+Unattended-Upgrade::Remove-Unused-Dependencies "true";

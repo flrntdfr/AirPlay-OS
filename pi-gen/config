@@ -1,0 +1,23 @@
+# pi-gen configuration for the AirPlay OS image (sourced by pi-gen's build.sh).
+# Copied to build/pi-gen/config by tools/build-image.sh, which appends the build-specific
+# lines (version, first user). Keep this file free of secrets.
+#
+# The image file is <date>-airplay-os-lite.img.xz (CI renames it to airplay-os-vN.img.xz);
+# the baked system is devices/ampberry.json (Wi‑Fi onboarding hotspot, http://ampberry.local/).
+IMG_NAME="airplay-os"
+RELEASE="trixie"
+TARGET_HOSTNAME="ampberry"
+LOCALE_DEFAULT="en_US.UTF-8"
+TIMEZONE_DEFAULT="Europe/Berlin"
+KEYBOARD_KEYMAP="de"
+KEYBOARD_LAYOUT="German"
+WPA_COUNTRY="DE"
+FIRST_USER_NAME="pi"
+# cloud-init (ours or the Raspberry Pi Imager's) manages the pi user on first boot; pi-gen's own
+# first-boot user rename is disabled so the account name is stable.
+DISABLE_FIRST_BOOT_USER_RENAME=1
+ENABLE_SSH=1
+ENABLE_CLOUD_INIT=1
+DEPLOY_COMPRESSION="xz"
+COMPRESSION_LEVEL=6
+STAGE_LIST="stage0 stage1 stage2 stage-ampberry"

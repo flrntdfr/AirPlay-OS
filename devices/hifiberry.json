@@ -1,0 +1,28 @@
+{
+  "id": "hifiberry",
+  "hostname": "hifiberry",
+  "pretty_name": "HifiBerry",
+  "description": "AirPlay 2 line-out",
+  "board": "Raspberry Pi 4 Model B",
+  "hat": "HiFiBerry DAC+",
+  "overlay": "hifiberry-dacplus-std",
+  "wifi": false,
+  "bluetooth": false,
+  "primary_interface": "eth0",
+  "address": "192.168.178.244",
+  "network": {
+    "lanCidrs": [
+      "192.168.178.0/24"
+    ],
+    "wifiInterface": "wlan0",
+    "hotspotCidr": "10.42.0.0/24"
+  },
+  "defaults": {
+    "name": "HifiBerry",
+    "password": "",
+    "interpolation": "auto",
+    "output_format": "S32_LE",
+    "volume_max_db": 0.0,
+    "volume_range_db": 60
+  }
+}

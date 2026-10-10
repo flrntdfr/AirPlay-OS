@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Ampberry">
+  <title><%= content_for?(:title) ? yield(:title) : "Ampberry" %></title>
+  <%= csrf_meta_tags %>
+  <%# shadcn themes switch on a .dark class; follow the phone's appearance automatically %>
+  <script>(function(){var m=matchMedia("(prefers-color-scheme: dark)");function a(){document.documentElement.classList.toggle("dark",m.matches)}a();m.addEventListener("change",a)})();</script>
+  <%= stylesheet_link_tag "tailwind" %>
+  <%= javascript_importmap_tags %>
+  <link rel="icon" href="<%= asset_path("icon.svg") %>" type="image/svg+xml">
+</head>
+<%# the top bar is fixed (h-12): other pages start below it; home is the log itself %>
+<body class="min-h-dvh bg-background text-foreground antialiased <%= controller_name == "player" ? "player" : "pt-12" %>">
+  <%# The live appliance log. Home: the page itself (scrollable history). Elsewhere: a passive,
+      still-streaming backdrop behind the content. %>
+  <pre id="log-backdrop" class="log-backdrop" aria-hidden="<%= controller_name == "player" ? "false" : "true" %>" data-url="<%= api_log_path %>"></pre>
+  <%= render Components::Nav.new(current: controller_name, now: AmpberryBridge.now_playing, name: AmpberryBridge.airplay_name) %>
+  <%= render Components::Flash.new(notice: notice, alert: alert) unless controller_name == "settings" %>
+  <main class="<%= { "player" => "", "settings" => "mx-auto w-full max-w-2xl" }.fetch(controller_name, "mx-auto w-full max-w-2xl px-4 pb-10") %>"><%= yield %></main>
+  <%= javascript_include_tag "log-backdrop" %>
+  <%= javascript_include_tag "actions" %>
+  <%= javascript_include_tag "player" if controller_name == "player" %>
+</body>
+</html>
