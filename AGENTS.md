@@ -14,7 +14,7 @@ build, since when). `OPERATIONS.md` is the dated log of everything done to a dev
 2. Identify the device: [`devices/Ampberry.md`](./devices/Ampberry.md) (Pi 3B + HiFiBerry Amp2,
    Wi‑Fi `192.168.178.221`, on AirPlay OS since 2026-10-08) or
    [`devices/HifiBerry.md`](./devices/HifiBerry.md) (Pi 4B + DAC+ line-out, Ethernet-only
-   `192.168.178.244` — still HiFiBerry OS NG until its migration is run). Its `devices/<id>.json`
+   `192.168.178.244`, on AirPlay OS since 2026-10-10). Its `devices/<id>.json`
    is the single source for hostname, HAT overlay, radios, LAN and shairport-sync defaults; the
    flake ships it to the box as `/etc/ampberry/device.json`.
 3. Connect as `pi` (SSH keys only, passwordless sudo): `ssh pi@ampberry.local` · `ssh pi@HifiBerry.local`.
@@ -60,7 +60,7 @@ notable in full. Append; don't rewrite past entries except to fix errors.
 
 ## Ask first
 
-Rebooting / Clean reboot (interrupts playback and SSH), purging or upgrading packages on a device
-that still runs HiFiBerry OS, `/boot/firmware/config.txt` overlay changes outside the flake, changing
+Rebooting / Clean reboot (interrupts playback and SSH), kernel/firmware upgrades,
+`/boot/firmware/config.txt` overlay changes outside the flake, changing
 the firewall posture or the LAN CIDR, raising `volume_max_db` on Ampberry, tagging a release
 (`v35` is tagged when Florent has confirmed everything works), pushing to the remote.

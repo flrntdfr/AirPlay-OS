@@ -75,7 +75,7 @@ defaults) and one record of what is installed (`<Id>.md`). Everything done to a 
 | Device | Hardware | Status |
 |---|---|---|
 | [Ampberry](./devices/Ampberry.md) | Pi 3B + HiFiBerry Amp2, Wi‑Fi | AirPlay OS build 37 (`v34` tagged at build 34) |
-| [HifiBerry](./devices/HifiBerry.md) | Pi 4B + HiFiBerry DAC+, Ethernet | HiFiBerry OS NG — migration pending |
+| [HifiBerry](./devices/HifiBerry.md) | Pi 4B + HiFiBerry DAC+, Ethernet | AirPlay OS build 38 (since 2026-10-10) |
 
 ## What works today (Nix)
 

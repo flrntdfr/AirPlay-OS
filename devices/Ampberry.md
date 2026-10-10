@@ -31,7 +31,7 @@ http://ampberry.local/       # web UI: live log + player · Settings pane
 | shairport-sync | 5.5.2 (AirPlay 2, ALSA, soxr, Avahi, metadata pipe) | 2026-10-08 |
 | nqptp | 1.2.8 | 2026-10-08 |
 | nixpkgs | 26.05 `7c8764b` · unstable `e7439b6` (audio only) · system-manager release-26.05 `8c7a4b8` | 2026-10-08 |
-| Settings | `volume_max_db` **−6 dB** (listen-tested ceiling, the Amp2 clips and shuts down above it), interpolation auto, S32_LE, name "Ampberry", no password | 2026-10-08 |
+| Settings | `volume_max_db` **−6 dB** (listen-tested ceiling, the Amp2 clips and shuts down above it), interpolation auto, S32_LE, no password; AirPlay name **"AirPlay OS"** (renamed from the Settings pane on 2026-10-10 — the default is "Ampberry") | 2026-10-08 |
 
 ¹ the exact flake revision is in `/etc/ampberry/release` on the box (`FLAKE_VERSION`), and in the
 Settings pane's footer; the log of each deploy is in `OPERATIONS.md`.

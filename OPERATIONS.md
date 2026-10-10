@@ -557,7 +557,39 @@ files just track installations and versions. Done in two commits (`dc0e493`, `74
   `device.json` behind for the others (random order). Both fixed. **Build 37 (17:25)** deployed:
   `DEVICE="ampberry"`, `/opt/ampberry` → the store copy of the repo root, `device.json` on the
   box, Wi‑Fi timer active, hotspot rules present, Settings footer `build 37 · /nix/store/…-source`,
-  `DEVICE=ampberry tools/verify.sh` all checks passed. Nothing on HifiBerry touched: its
-  migration purges the whole hbos stack and waits for Florent's go.
+  `DEVICE=ampberry tools/verify.sh` all checks passed.
+
+## 2026-10-10 — HifiBerry: migrated in place to AirPlay OS (build 38)
+
+Florent: "Proceed". Harvest first (17:21, read-only: 2 SSH keys + the `pi` hash into
+`build/secrets.harvested.env`; the box's own cloud-init network-config carried an unused Wi‑Fi
+profile with its passphrase, so that copy was dropped and the rendered Ethernet-only seed used
+instead). Then `DEVICE=hifiberry AMPBERRY_HOST=pi@HifiBerry.local ASSUME_YES=1 tools/apply-live.sh`
+from a clean worktree of `ce6c9b7` (17:22–17:33, ~11 min, log `build/apply-20261010-172250.log`):
+
+1. preflight, seed rendered (`--device hifiberry`: hostname/pretty name from the definition, no Wi‑Fi section);
+2. **backup** → `build/backup-pre-nix-20261010-172250.tgz` + `dpkg-selections-…` + `apt-manual-…`;
+3. hbos user units stopped, linger off;
+4. **purged 27 packages** (hbos-full/minimal, every hifiberry-* player and service, pipewire*,
+   wireplumber, ladspa-speakereq, rpi-connect-lite; 118 MB + 793 MB freed), HiFiBerry apt source
+   and key removed, `avahi-daemon avahi-utils alsa-utils curl ca-certificates` installed;
+5. Determinate Nix installed, `trusted-users = root pi`, `ampberry` + `shairport-sync` users;
+6. `system-manager switch --flake .#hifiberry --target-host` (built on the linux-builder);
+   system paths recorded;
+7. `ampberry provision`: config.txt now `dtparam=audio=off`, `dtoverlay=hifiberry-dacplus-std`,
+   `dtparam=i2c_arm=on`, `dtoverlay=disable-bt`, `dtoverlay=disable-wifi` (hbos's `dtparam=spi=on`
+   and `nospi10` lines untouched); seed installed to `/boot/firmware/`;
+8. reboot; back in ~1 min; `DEVICE=hifiberry tools/verify.sh` **all checks passed**.
+
+After: `NAME="HifiBerry"`, `DEVICE="hifiberry"`, `BUILD="38"`, `FLAKE_VERSION="ce6c9b7"`;
+shairport-sync 5.5.2 + nqptp 1.2.8 active, announced as `HifiBerry` on `_airplay._tcp`; no
+Wi‑Fi fallback timer; `volume_max_db = 0.0` rendered; 0 hbos packages; kernel still
+`6.18.34+rpt-rpi-v8` (apt upgrade pending, manual); Nix store 0.9 GB; UI brand "HifiBerry", the
+live log streaming. Hostname stays `HifiBerry` (the seed's `hifiberry` applies on a Clean reboot).
+**Not yet listen-tested** with the amplifier. Side note: while checking I also ran
+`sudo nix-collect-garbage -d` on the box — unplanned, harmless (one profile generation, everything
+rooted; services unaffected, store size unchanged). Seen in the mDNS browse: Ampberry currently
+announces itself as **"AirPlay OS"** — its AirPlay name was changed from the Settings pane (not by
+this session). `v35` waits for the listen-test.
 
 <!-- New entries go above this line -->
