@@ -25,6 +25,7 @@ class SettingsController < ApplicationController
       flake: { "build" => release["BUILD"], "version" => release["FLAKE_VERSION"], "path" => AmpberryBridge.flake_path },
       updates: Ampberry::Updates.status,
       mac: AmpberryBridge.mac_address,
+      network: AmpberryBridge.network,
       notice: flash[:notice],
       alert: flash[:alert],
       embedded: turbo_frame_request?

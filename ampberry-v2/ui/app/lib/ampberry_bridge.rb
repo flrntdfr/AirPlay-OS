@@ -58,6 +58,15 @@ module AmpberryBridge
     nil
   end
 
+  # The two interfaces for the Network card — read here (nmcli is readable by any user; no
+  # privilege, nothing logged), switched through the control socket (network-set).
+  def network
+    Ampberry::Network.status
+  rescue StandardError => e
+    Rails.logger.warn("network status: #{e.class}: #{e.message}")
+    {}
+  end
+
   # The background job (Redeploy / Update): its world-readable state file.
   def redeploy_state
     st = JSON.parse(File.read(Ampberry.path(:redeploy_state)))

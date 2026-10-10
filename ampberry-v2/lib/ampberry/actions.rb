@@ -29,6 +29,11 @@ module Ampberry
       "wifi-connect" => { label: "Join a Wi-Fi network", params: { "ssid" => :string, "psk" => :string }, confirm: true,
                           code: ->(p) { { "status" => Wifi.connect(p["ssid"].to_s, p["psk"].to_s) } } },
       "wifi-hotspot-off" => { label: "Stop onboarding hotspot", params: {}, code: ->(_p) { { "changed" => Wifi.hotspot_off } } },
+      # The Network card: the two interfaces, and a switch each (refused when it would lock the
+      # user out — only the other interface being connected makes a switch-off possible)
+      "network-status" => { label: "Network status", params: {}, code: ->(_p) { { "network" => Network.status } } },
+      "network-set" => { label: "Switch an interface on or off", params: { "iface" => :string, "enabled" => :bool },
+                         code: ->(p) { { "network" => Network.set(p["iface"].to_s, p["enabled"] ? true : false) } } },
       "restart-airplay" => { label: "Restart AirPlay", params: {},
                              code: lambda { |_p|
                                # a receiver that tripped its start limit (many quick saves) must come back too

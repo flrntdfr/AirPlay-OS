@@ -22,13 +22,14 @@ class Views::Settings::Show < Views::Base
     "output_format:S16_LE" => "16-bit: lighter on the CPU, a little less precise at low volume"
   }.freeze
 
-  def initialize(settings:, schema:, groups:, flake:, updates:, mac: nil, error: nil, notice: nil, alert: nil, embedded: false)
+  def initialize(settings:, schema:, groups:, flake:, updates:, mac: nil, network: {}, error: nil, notice: nil, alert: nil, embedded: false)
     @settings = settings
     @schema = schema
     @groups = groups
     @flake = flake
     @updates = updates
     @mac = mac
+    @network = network
     @error = error
     @notice = notice
     @alert = alert
@@ -48,6 +49,7 @@ class Views::Settings::Show < Views::Base
         airplay_card
         actions_card(@groups[0][:actions]) if @groups[0]
         sound_card
+        network_card
         actions_card(@groups[1][:actions]) if @groups[1]
         pre(id: "action-output", hidden: true,
             class: "max-h-72 overflow-auto rounded-lg border bg-muted/40 p-3 font-mono text-xs whitespace-pre-wrap")
@@ -168,6 +170,67 @@ class Views::Settings::Show < Views::Base
         end
         row("Resampling", tip: TIPS["interpolation"]) { select_field("settings-interpolation", "settings[interpolation]", @schema["interpolation"][:values], @settings["interpolation"], key: "interpolation") }
         row("Output format", tip: TIPS["output_format"]) { select_field("settings-output_format", "settings[output_format]", @schema["output_format"][:values], @settings["output_format"], key: "output_format") }
+      end
+    end
+  end
+
+  # ---- Network: Wi‑Fi and Ethernet, status + leased address + a switch each; join a Wi‑Fi -------
+  # The switch is only usable when switching off would not lock the user out (the other
+  # interface is connected). network_controller.js posts network-set / wifi-connect and reloads
+  # the frame. Nothing is shown when the status could not be read (the Mac preview).
+
+  def network_card
+    return if @network.empty?
+
+    card("Network") do
+      div(class: "space-y-5", data: { controller: "network", network_set_url_value: "#{api_actions_path}/network-set",
+                                      network_connect_url_value: "#{api_actions_path}/wifi-connect" }) do
+        @network.each_value { |s| network_row(s) }
+        wifi_form
+        p(class: "min-h-4 text-xs text-muted-foreground", data: { network_target: "status" }, aria_live: "polite")
+      end
+    end
+  end
+
+  def network_row(s)
+    word = Ampberry::Network.describe(s)
+    locked = s["enabled"] && !Ampberry::Network.may_disable?(@network, s["iface"])
+    div(class: "flex items-center justify-between gap-4") do
+      div(class: "min-w-0") do
+        div(class: "flex items-center gap-2") do
+          span(class: "text-sm font-medium") { s["label"] }
+          span(class: ["text-xs", (s["connected"] ? "text-success" : "text-muted-foreground")]) { word }
+        end
+        # the leased address, small; the Wi‑Fi line names the network too
+        p(class: "truncate font-mono text-xs text-muted-foreground") do
+          plain(s["ip4"] ? s["ip4"].sub(%r{/\d+\z}, "") : "no address")
+          plain(" · #{s["ssid"]}") if s["ssid"].present? && s["connected"]
+        end
+      end
+      Switch(include_hidden: false, checked: s["enabled"], disabled: (locked || !s["present"]),
+             aria_label: "#{s["label"]} on or off",
+             title: (locked ? "The only connected interface — connect the other one before switching this off" : nil),
+             data: { iface: s["iface"], action: "change->network#toggle" })
+    end
+  end
+
+  # Join (or re-key) a Wi‑Fi network from here: name + password, then Connect. The receiver
+  # moves to that network; if it is another one, reach it at its new address.
+  def wifi_form
+    wifi = @network["wlan0"] || {}
+    Form(action: "#", method: "post", class: "space-y-3 border-t pt-4", data: { action: "submit->network#connect" }) do
+      field("wifi[ssid]", "Wi‑Fi network") do |id|
+        Input(id: id, name: "ssid", value: wifi["ssid"], maxlength: 32, autocomplete: "off", data: { network_target: "ssid" })
+      end
+      field("wifi[psk]", "Wi‑Fi password") do |id|
+        div(class: "flex items-center gap-2", data: { controller: "reveal" }) do
+          Input(id: id, type: :password, name: "psk", maxlength: 64, autocomplete: "off", class: "flex-1", data: { reveal_target: "input", network_target: "psk" })
+          Button(variant: :ghost, icon: true, type: :button, aria_label: "Show or hide the password", data: { action: "click->reveal#toggle" }) do
+            eye_icon(on: true)
+            eye_icon(on: false)
+          end
+          Button(**QUIET_BUTTON, type: :submit) { "Connect" }
+        end
       end
     end
   end

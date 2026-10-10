@@ -77,4 +77,5 @@ module Ampberry
   autoload :Remote, "ampberry/remote"
   autoload :Health, "ampberry/health"
   autoload :Updates, "ampberry/updates"
+  autoload :Network, "ampberry/network"
 end
