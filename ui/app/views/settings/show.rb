@@ -54,7 +54,8 @@ class Views::Settings::Show < Views::Base
         pre(id: "action-output", hidden: true,
             class: "max-h-72 overflow-auto rounded-lg border bg-muted/40 p-3 font-mono text-xs whitespace-pre-wrap")
       end
-      footer(class: "shrink-0 border-t bg-background px-6 py-3") { stats }
+      # a little more room at the bottom: the rounded corners / home indicator of a phone
+      footer(class: "shrink-0 border-t bg-background px-6 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))]") { stats }
     end
   end
 
@@ -282,12 +283,13 @@ class Views::Settings::Show < Views::Base
     end
   end
 
-  # What is running: build number (commit count) and the flake source in the Nix store
+  # What is running: the version (v + build number = the commit count, which is what the vN tags
+  # are cut from; "dev" for a dirty tree) over the flake source in the Nix store
   # (/opt/ampberry → /nix/store/…-source).
   def stats
     div(class: "font-mono text-xs [overflow-wrap:anywhere]") do
-      span(class: "font-semibold") { "build #{@flake["build"].presence || "dev"}" }
-      span(class: "text-muted-foreground") { " · #{@flake["path"].presence || @flake["version"].presence || "unknown"}" }
+      p(class: "font-semibold") { @flake["build"].present? && @flake["build"] != "dev" ? "v#{@flake["build"]}" : "dev" }
+      p(class: "text-muted-foreground") { @flake["path"].presence || @flake["version"].presence || "unknown" }
     end
   end
 

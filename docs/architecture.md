@@ -107,7 +107,7 @@ gradients, one page:
 - **Home** = the live log full screen: the last 100 lines on load, then streamed, one line per
   frame; `YYYY-MM-DD HH:MM:SS tag message`, timestamp muted, errors red, warnings orange, health green.
 - **Settings pane** under the bar (no title, no cross; a tap outside closes it), rigid stats bar at
-  the bottom (`build N · /nix/store/…`): **AirPlay** (name and password save 1 s after typing; MAC;
+  the bottom (`vN` — the build number, which the `vN` tags are cut from — over the flake's store path): **AirPlay** (name and password save 1 s after typing; MAC;
   the shairport-sync version with the **update badge** — green up to date / red release available /
   grey unchecked; hover offers Check now / Update now; the update builds the release on the Pi on
   top of the flake, ~10 min, a Redeploy reverts), **Restart AirPlay**, **Sound** (max volume,

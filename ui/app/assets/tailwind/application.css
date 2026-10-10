@@ -188,6 +188,8 @@
      the player bar; new lines arrive one per frame (log-backdrop.js), the tail follows them */
   body.player .log-backdrop {
     z-index: 0; display: block; overflow-y: auto; -webkit-overflow-scrolling: touch; pointer-events: auto;
+    /* exactly the visible viewport (dvh follows the phone's toolbar), never taller than it */
+    top: 0; bottom: auto; height: 100dvh; box-sizing: border-box;
     color: var(--foreground); font-size: 12px;
     padding: 3.75rem 1rem calc(1rem + env(safe-area-inset-bottom));
   }

@@ -17,9 +17,16 @@
   const WARN = /\b(warn(ing)?|retry(ing)?|throttl\w*|disconnect\w*|lost|invalid user)\b/i;
   const LINE = /^((?:\d{4}-\d\d-\d\d )?\d\d:\d\d:\d\d) (\S+)\s/;
   let offset = null, partial = "", queue = [], draining = false, hot = false, lastRedeploy = null;
-  // follow the tail until the reader scrolls up; scrolling back to the bottom resumes following
+  // Follow the tail until the reader scrolls (a wheel or a finger — the only things that are
+  // not our own scrolling); reaching the bottom again resumes following. Scroll positions are
+  // not used to detect the reader: WebKit delivers scroll events late and reports an assigned
+  // scrollTop before clamping it, which made position checks stop following mid-load.
   let follow = true;
-  el.addEventListener("scroll", () => { follow = el.scrollHeight - el.scrollTop - el.clientHeight < 24; }, { passive: true });
+  const readerScrolls = () => { follow = false; };
+  el.addEventListener("wheel", readerScrolls, { passive: true });
+  el.addEventListener("touchmove", readerScrolls, { passive: true });
+  el.addEventListener("scroll", () => { if (el.scrollHeight - el.scrollTop - el.clientHeight < 24) follow = true; }, { passive: true });
+  function toTail() { el.scrollTop = el.scrollHeight; }
 
   function spanFor(l) {
     const s = document.createElement("span");
@@ -48,7 +55,7 @@
     lastTick = now;
     for (let i = 0; i < n && queue.length; i++) el.append(spanFor(queue.shift()));
     while (el.childElementCount > MAX_LINES) el.firstElementChild.remove();
-    if (follow) el.scrollTop = el.scrollHeight;
+    if (follow) toTail();
     setTimeout(drain, LINE_EVERY_MS);
   }
 
