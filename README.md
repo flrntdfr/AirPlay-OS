@@ -32,8 +32,9 @@ Consult [development](./docs/DEVELOPMENT.md).
 
 - raspberry-pi-imag
 - Cloud-init
-- Ruby on Rails
 - Ruby API and CLI
+- Ruby on Rails
+- shadcn-ui
 - Nix Flake
 - Github action
 

@@ -1,7 +1,7 @@
 # Operations Log
 
 A dated record of operational actions performed on the devices — updates, restarts, config
-changes, fixes. Newest entries first. See [`AGENTS.md`](./AGENTS.md) for why this exists and what
+changes, fixes. Newest entries first. See [`AGENTS.md`](../AGENTS.md) for why this exists and what
 belongs here.
 
 ## 2026-07-24 — Package upgrade: Ampberry

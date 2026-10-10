@@ -46,7 +46,7 @@ Roon RAAT / squeezelite, speaker-EQ filter chain. All of it purged by the migrat
 
 - **Volume.** The DAC+ output is line level; `volume_max_db` 0 dB maps the phone's slider onto
   `[−60, 0] dB` of the `Digital` mixer. Not yet listen-tested with the amplifier after the migration.
-- **Ethernet only.** `devices/hifiberry.json` has `"wifi": false`: no hotspot, no Wi‑Fi timer, no
+- **Ethernet only.** `docs/devices/hifiberry.json` has `"wifi": false`: no hotspot, no Wi‑Fi timer, no
   hotspot firewall rules, `disable-wifi` in config.txt. The Settings pane's Network card shows
   Wi‑Fi as absent; the Ethernet switch stays locked (it is the only way in).
 - **Rollback** (if ever): the backup tarball + `dpkg-selections-20261010-172250.txt` in `build/`,

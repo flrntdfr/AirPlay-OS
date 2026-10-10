@@ -3,7 +3,7 @@
 # lines (version, first user). Keep this file free of secrets.
 #
 # The image file is <date>-airplay-os-lite.img.xz (CI renames it to airplay-os.img.xz);
-# the baked system is devices/ampberry.json (Wi‑Fi onboarding hotspot, http://ampberry.local/).
+# the baked system is docs/devices/ampberry.json (Wi‑Fi onboarding hotspot, http://ampberry.local/).
 IMG_NAME="airplay-os"
 RELEASE="trixie"
 TARGET_HOSTNAME="ampberry"

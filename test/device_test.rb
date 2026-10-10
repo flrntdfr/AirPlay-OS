@@ -2,7 +2,7 @@
 
 require_relative "test_helper"
 
-# devices/<id>.json → /etc/airplay-os/device.json: what the tools derive from it.
+# docs/devices/<id>.json → /etc/airplay-os/device.json: what the tools derive from it.
 class DeviceTest < AirPlayOSTest
   # the written definition must not leak into the other tests (the suite runs in random order)
   def teardown

@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 # Render the cloud-init seed (user-data, network-config, meta-data) for one device from
-# cloud-init/*.tmpl, devices/<id>.json and secrets.env into an output directory (default: build/).
+# cloud-init/*.tmpl, docs/devices/<id>.json and secrets.env into an output directory (default: build/).
 # Run via tools/build-image.sh / tools/apply-live.sh or:
 #   nix shell nixpkgs#ruby_3_4 --command ruby tools/build-user-data.rb --device airplay-os --out build
 #
@@ -25,7 +25,7 @@ opts = { out: File.join(root, "build"), secrets: File.join(root, "secrets.env"),
 OptionParser.new do |o|
   o.on("--out DIR") { |v| opts[:out] = v }
   o.on("--secrets FILE") { |v| opts[:secrets] = v }
-  o.on("--device ID", "devices/<ID>.json (default: ampberry)") { |v| opts[:device] = v }
+  o.on("--device ID", "docs/devices/<ID>.json (default: ampberry)") { |v| opts[:device] = v }
 end.parse!
 
 abort "secrets file not found: #{opts[:secrets]} (copy secrets.env.example)" unless File.exist?(opts[:secrets])

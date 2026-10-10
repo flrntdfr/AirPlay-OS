@@ -18,7 +18,7 @@ let
   ui = airplay-os.airplay-os-ui;
   shairport = airplay-os.shairport-sync-airplay2;
   nqptp = airplay-os.nqptp;
-  device = airplay-os.device; # devices/<id>.json — hostname, HAT, radios, defaults
+  device = airplay-os.device; # docs/devices/<id>.json — hostname, HAT, radios, defaults
   # system-manager gives units a Nix-only PATH. The Ruby tools drive the Debian side of the box
   # (nmcli, systemctl, journalctl, apt-get, cloud-init, hostnamectl…), which lives in /usr/{bin,sbin}.
   debianPath = [ "/usr" ];
@@ -56,7 +56,7 @@ in
     ];
 
     environment.etc = {
-      # the device definition and its shairport-sync defaults, straight from devices/<id>.json
+      # the device definition and its shairport-sync defaults, straight from docs/devices/<id>.json
       "airplay-os/device.json".text = builtins.toJSON device;
       "airplay-os/defaults.json".text = builtins.toJSON device.defaults;
       "airplay-os/actions.json".source = ../../etc/airplay-os/actions.json;

@@ -36,7 +36,7 @@ module AirPlayOS
     pi_home: "/home/pi",
     flake: "/opt/airplay-os",
     release: "/etc/airplay-os/release",
-    device: "/etc/airplay-os/device.json", # devices/<id>.json, shipped by the flake
+    device: "/etc/airplay-os/device.json", # docs/devices/<id>.json, shipped by the flake
     update_flake: "/var/lib/airplay-os/shairport-update", # written by `redeploy run --update-shairport`
     system_path: "/etc/airplay-os/system-path",
     system_manager_path: "/etc/airplay-os/system-manager-path",
@@ -54,7 +54,7 @@ module AirPlayOS
     "overlay" => "hifiberry-dacplus-std", "wifi" => true, "bluetooth" => false, "primary_interface" => "wlan0"
   }.freeze
 
-  # The device this box is (devices/<id>.json as shipped to /etc/airplay-os/device.json).
+  # The device this box is (docs/devices/<id>.json as shipped to /etc/airplay-os/device.json).
   def self.device
     @device ||= begin
       require "json"

@@ -33,9 +33,9 @@
       # roll back to. Nix only knows it for a clean checkout; a dirty tree deploys as "dev".
       selfBuild = if self ? revCount then toString self.revCount else "dev";
 
-      # One appliance per file in devices/<id>.json: hostname, HAT overlay, radios, LAN, the
+      # One appliance per file in docs/devices/<id>.json: hostname, HAT overlay, radios, LAN, the
       # shairport-sync defaults. The same JSON reaches the device as /etc/airplay-os/device.json,
-      # so the Ruby tools and the flake read one definition. devices/<Id>.md is the install record.
+      # so the Ruby tools and the flake read one definition. docs/devices/<Id>.md is the install record.
       deviceIds = [
         "ampberry"
         "hifiberry"

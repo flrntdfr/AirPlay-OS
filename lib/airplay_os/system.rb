@@ -27,7 +27,7 @@ module AirPlayOS
 
       # Ensure the HAT lines are present (appended under a trailing [all] section when missing) and
       # that the onboard audio is not re-enabled. Returns { "changed" => bool, "added" => [...] }.
-      # /boot/firmware/config.txt lines for this device (devices/<id>.json): onboard audio off,
+      # /boot/firmware/config.txt lines for this device (docs/devices/<id>.json): onboard audio off,
       # the HAT overlay (none when the HAT's EEPROM is left to announce it), I2C for the DAC,
       # and each radio the device does not use switched off at the device-tree level.
       def config_txt_lines(device = AirPlayOS.device)

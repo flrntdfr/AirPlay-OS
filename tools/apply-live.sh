@@ -13,7 +13,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-DEVICE="${DEVICE:-ampberry}"            # systemConfigs.<id> in flake.nix = devices/<id>.json
+DEVICE="${DEVICE:-ampberry}"            # systemConfigs.<id> in flake.nix = docs/devices/<id>.json
 HOST="${AIRPLAY_OS_HOST:-pi@${DEVICE}.local}"
 ALIAS="${AIRPLAY_OS_ALIAS:-${HOST#*@}}"
 SSH=(ssh -o ConnectTimeout=10 -o HostKeyAlias="$ALIAS" "$HOST")

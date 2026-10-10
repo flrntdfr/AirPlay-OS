@@ -1,5 +1,5 @@
 The Docker commands above are the goal; today the OS is built and deployed with Nix from the
-repo root (see [`docs/architecture.md`](./docs/architecture.md)):
+repo root (see [`docs/ARCHITECTURE.md`](./ARCHITECTURE.md)):
 
 ```sh
 # test (Mac)

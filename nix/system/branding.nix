@@ -1,5 +1,5 @@
 # Branding that lives in the flake (the pi-gen stage writes the image-level counterpart), from
-# the device definition (devices/<id>.json). Only files no Debian package owns, so
+# the device definition (docs/devices/<id>.json). Only files no Debian package owns, so
 # unattended-upgrades never sees a modified conffile.
 { airplay-os, ... }:
 let
