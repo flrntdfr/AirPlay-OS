@@ -502,4 +502,27 @@ failed" instead of a permanent "Checking…". `verify.sh` all checks passed. Sim
 a 0.1 s "tap" does not register as a click in WebKit, a plain tap does — testing artefact, not a
 UI bug. Also seen: ⏸ renders as an emoji on iOS (⏵ as a glyph) — cosmetic, left for later.
 
+**Build 33 (16:33) — Network card.** Below Sound: a **Wi‑Fi** and an **Ethernet** row, each with
+its state in a word (connected / no cable / off / disconnected…), the leased IPv4 address small
+underneath (the SSID on the Wi‑Fi line) and a **switch**. The switch is only usable when switching
+off cannot lock the user out — the other interface must be connected with an address
+(`Ampberry::Network.may_disable?`, and the root-side `network-set` action refuses it again).
+Wi‑Fi off = `nmcli radio wifi off` (NetworkManager keeps it across reboots); Ethernet off =
+`nmcli device set eth0 autoconnect no` + `device disconnect` (forgotten at the next reboot, so a
+cable always works again after one). Below the rows: Wi‑Fi network + password + **Connect**
+(the existing `wifi-connect` action). Status is read in the UI process — `nmcli` answers any
+user, nothing privileged, nothing logged; `network-status` exists on the control side too.
+`network_controller.js` reloads the Settings frame after a switch or a connect. 5 tests (83
+green). On the device: rows read `Wi‑Fi connected 192.168.178.221 · Pass the Juice` and
+`Ethernet no cable`; via the API: eth0 off → `GENERAL.AUTOCONNECT:no`, Wi‑Fi off refused with
+"Wi‑Fi is the only way in — connect the other interface first", eth0 on → autoconnect yes again;
+shairport-sync untouched. Not yet tried with a cable plugged in.
+
+**Build 34:** the refusal above left an `ampberry-control@` instance "failed" (the handler
+exited 1 whenever the answer was `ok:false` — same thing the 18:50 settings-apply failure had
+shown) → `respond` exits 0 (the request was answered; the error is the client's), and
+`CollectMode=inactive-or-failed` moved from [Service] (ignored, "Unknown key") to [Unit] so
+instances that do fail are collected. Deployed 16:41: the same refused switch now leaves no
+failed unit, no "Unknown key" warning in the journal, `verify.sh` all checks passed.
+
 <!-- New entries go above this line -->
