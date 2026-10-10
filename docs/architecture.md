@@ -122,7 +122,7 @@ gradients, one page:
 arm64 runner (`ubuntu-24.04-arm`): the flake built natively (`ampberry-tools`, `ampberry-ui`,
 both `systemConfigs`), the image built with pi-gen in Docker (`GENERIC=1 tools/build-image.sh`),
 and release **`vN`** (N = commit count = the build number the device shows) with one asset,
-`airplay-os-vN.img.xz`, and one line, `link`, to paste into Raspberry Pi Imager. The generic
+`airplay-os.img.xz`, and one line, `link`, to paste into Raspberry Pi Imager. The generic
 image carries no secrets: no Wi‑Fi, no SSH key, no seed of ours; `airplay-os-firstboot.service`
 (pi-gen stage `05-firstboot`) activates the baked `ampberry` system and provisions it on first
 boot, the Raspberry Pi Imager's own customization applies, the onboarding hotspot's default

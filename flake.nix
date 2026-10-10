@@ -1,5 +1,5 @@
 {
-  description = "AirPlay OS — AirPlay 2 receiver appliance on Raspberry Pi OS, managed with Nix (system-manager)";
+  description = "AirPlay as Flake. AirPlay receiver appliance managed with Nix";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";

@@ -42,7 +42,7 @@ jobs:
           n=$(git rev-list --count HEAD)
           echo "number=$n" >> "$GITHUB_OUTPUT"
           echo "tag=v$n" >> "$GITHUB_OUTPUT"
-          echo "asset=airplay-os-v$n.img.xz" >> "$GITHUB_OUTPUT"
+          echo "asset=airplay-os.img.xz" >> "$GITHUB_OUTPUT"
           echo "AirPlay OS v$n ($GITHUB_SHA)"
 
       - uses: DeterminateSystems/nix-installer-action@v16
@@ -71,6 +71,23 @@ jobs:
         with:
           tag_name: ${{ steps.v.outputs.tag }}
           name: ${{ steps.v.outputs.tag }}
-          body: "[link](https://github.com/${{ github.repository }}/releases/download/${{ steps.v.outputs.tag }}/${{ steps.v.outputs.asset }})"
+          body: ""
           files: build/${{ steps.v.outputs.asset }}
           make_latest: true
+
+      # Keep the README download command on the release just published. The push uses the
+      # workflow token, so it does not trigger another run.
+      - name: Point the README at ${{ steps.v.outputs.tag }}
+        env:
+          TAG: ${{ steps.v.outputs.tag }}
+          ASSET: ${{ steps.v.outputs.asset }}
+        run: |
+          sed -i -E \
+            -e "s|^# Fetch the latest version.*|# Fetch the latest version ($TAG)|" \
+            -e "s|releases/download/[^ ]+$|releases/download/$TAG/$ASSET|" README.md
+          git diff --quiet README.md && exit 0
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "README" README.md
+          git pull --rebase origin main
+          git push origin HEAD:main
