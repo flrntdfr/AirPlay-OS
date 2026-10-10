@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Write the Ampberry image to an SD card on macOS. Interactive, double-checks the target disk.
+# Write the AirPlay OS image to an SD card on macOS. Interactive, double-checks the target disk.
 #
-#   tools/flash.sh /dev/disk4                      # latest build/pi-gen/deploy/*Ampberry-lite.img.xz
+#   tools/flash.sh /dev/disk4                      # latest build/pi-gen/deploy/*airplay-os-lite.img.xz
 #   tools/flash.sh /dev/disk4 path/to/image.img.xz
 #
 # Find the card with `diskutil list` (look for the SD card's size and "external, physical").
@@ -10,7 +10,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 DISK="${1:-}"
-IMAGE="${2:-$(ls -t build/pi-gen/deploy/*Ampberry-lite.img.xz 2>/dev/null | head -1 || true)}"
+IMAGE="${2:-$(ls -t build/pi-gen/deploy/*airplay-os-lite.img.xz 2>/dev/null | head -1 || true)}"
 [[ -n "$DISK" ]] || { echo "usage: tools/flash.sh /dev/diskN [image.img.xz]" >&2; exit 2; }
 [[ -n "$IMAGE" && -f "$IMAGE" ]] || { echo "no image found — run tools/build-image.sh first" >&2; exit 1; }
 [[ "$DISK" =~ ^/dev/disk[0-9]+$ ]] || { echo "target must be a whole disk like /dev/disk4" >&2; exit 2; }
@@ -31,4 +31,4 @@ xz -dc "$IMAGE" | sudo dd of="$RAW" bs=4m status=progress conv=sync
 sync
 diskutil eject "$DISK" || true
 echo "== done. First boot: cloud-init joins Wi-Fi, activates the Nix closure baked into the image,"
-echo "   runs 'ampberry provision'; a few minutes later http://ampberry.local/ answers."
+echo "   runs 'airplay-os provision'; a few minutes later http://ampberry.local/ answers."

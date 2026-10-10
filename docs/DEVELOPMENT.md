@@ -31,11 +31,11 @@ PI_PASSWORD_HASH="" # getent shadow pi | cut -d: -f2
 docker run airplay-os tests --local
 
 # Test remotely on the Raspberry
-docker run airplay-os tests --remote ampberry.lan
+docker run airplay-os tests --remote airplay-os.lan
 ```
 
 ### Deploy
 
 ```
-docker run airplay-os deploy --version 1.1.0 ampberry.lan
+docker run airplay-os deploy --version 1.1.0 airplay-os.lan
 ```

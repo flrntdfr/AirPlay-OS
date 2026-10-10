@@ -2,7 +2,7 @@
 
 require "tempfile"
 
-module Ampberry
+module AirPlayOS
   # Renders /etc/shairport-sync.conf from the effective settings (AirPlay 2 only) and restarts the
   # receiver. nqptp is always on; the firewall is static (nix/system/firewall.nix).
   module Settings
@@ -16,8 +16,8 @@ module Ampberry
 
         password = s["password"].to_s.empty? ? "" : "  password = #{q(s['password'])};\n"
         <<~CONF
-          // Managed by ampberry (Ampberry::Settings). Change settings in the web UI or with
-          //   echo '{"settings":{"name":"..."}}' | sudo ampberry settings apply
+          // Managed by airplay-os (AirPlayOS::Settings). Change settings in the web UI or with
+          //   echo '{"settings":{"name":"..."}}' | sudo airplay-os settings apply
           // Manual edits are overwritten on the next apply / clean reboot.
           general = {
             name = #{q(s.fetch('name', 'Ampberry'))};
@@ -46,7 +46,7 @@ module Ampberry
           metadata = {
             enabled = "yes";
             include_cover_art = "yes";
-            pipe_name = "#{Ampberry.path(:metadata_pipe)}";
+            pipe_name = "#{AirPlayOS.path(:metadata_pipe)}";
             pipe_timeout = 5000;
           };
 
@@ -58,7 +58,7 @@ module Ampberry
 
       # Write the rendered config atomically (0644).
       def write_conf(text)
-        path = Ampberry.path(:shairport_conf)
+        path = AirPlayOS.path(:shairport_conf)
         tmp = Tempfile.create([".shairport-sync.conf.", ".tmp"], File.dirname(path))
         begin
           tmp.write(text)
@@ -92,7 +92,7 @@ module Ampberry
 
       # libconfig string escaping
       def q(value)
-        %("#{value.to_s.gsub('\\', '\\\\\\\\').gsub('"', '\\"')}")
+        %("#{value.to_s.gsub(/[\\"]/) { "\\#{$&}" }}")
       end
 
       # shairport-sync insists on a decimal point in dB values

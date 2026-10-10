@@ -18,8 +18,8 @@ http://ampberry.local/       # web UI: live log + player · Settings pane
 | Board | Raspberry Pi 3 Model B Rev 1.2 — aarch64, ~905 MB RAM, zram swap, 58 GB SD |
 | HAT | HiFiBerry Amp2 (`dtoverlay=hifiberry-dacplus-std`), ALSA `hw:0`, mixer `Digital` |
 | Speakers | custom passive pair (driver / enclosure / crossover: to be documented) |
-| Network | Wi‑Fi `wlan0` on `192.168.178.0/24`, DHCP lease `192.168.178.221`; `eth0` as rescue path; onboarding hotspot `Ampberry-setup` (10.42.0.0/24) when no network; Bluetooth off |
-| Users | `pi` (sudo, SSH keys); `ampberry` + `shairport-sync` system users (nologin, no sudo) |
+| Network | Wi‑Fi `wlan0` on `192.168.178.0/24`, DHCP lease `192.168.178.221`; `eth0` as rescue path; onboarding hotspot `AirPlay-OS-setup` (10.42.0.0/24) when no network; Bluetooth off |
+| Users | `pi` (sudo, SSH keys); `airplay-os` + `shairport-sync` system users (nologin, no sudo) |
 | Base OS | Raspberry Pi OS Lite — Debian 13 (trixie), kernel `6.18.50+rpt-rpi-v8`, `raspi-firmware` 1.20260915 (apt; Debian security auto-updates only) |
 | Nix | Determinate Nix 3.23.1 (multi-user), `trusted-users = root pi` |
 
@@ -33,7 +33,7 @@ http://ampberry.local/       # web UI: live log + player · Settings pane
 | nixpkgs | 26.05 `7c8764b` · unstable `e7439b6` (audio only) · system-manager release-26.05 `8c7a4b8` | 2026-10-08 |
 | Settings | `volume_max_db` **−6 dB** (listen-tested ceiling, the Amp2 clips and shuts down above it), interpolation auto, S32_LE, no password; AirPlay name **"AirPlay OS"** (renamed from the Settings pane on 2026-10-10 — the default is "Ampberry") | 2026-10-08 |
 
-¹ the exact flake revision is in `/etc/ampberry/release` on the box (`FLAKE_VERSION`), and in the
+¹ the exact flake revision is in `/etc/airplay-os/release` on the box (`FLAKE_VERSION`), and in the
 Settings pane's footer; the log of each deploy is in `OPERATIONS.md`.
 
 ## Notes specific to this unit

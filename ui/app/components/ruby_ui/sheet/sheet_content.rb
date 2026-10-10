@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module RubyUI
-  # Ampberry: the pane hangs under the fixed top bar (top-12) and so does the dimmed backdrop,
+  # AirPlay OS: the pane hangs under the fixed top bar (top-12) and so does the dimmed backdrop,
   # so the bar itself is never dimmed and stays usable; no close button (click/tap anywhere
   # outside the pane closes it — sheet_content_controller.js), no blur, no slide/fade animation:
   # it appears and disappears at once.

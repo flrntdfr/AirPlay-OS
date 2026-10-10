@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Ampberry
+module AirPlayOS
   # The two network interfaces as the Settings pane's Network card shows them, on top of
   # NetworkManager (nmcli):
   #   status            → { "wlan0" => { iface, kind, label, present, state, connected, enabled,
@@ -59,10 +59,10 @@ module Ampberry
       end
 
       def set(iface, enabled, status: nil)
-        kind = IFACES[iface] or raise Ampberry::Error, "unknown interface '#{iface}'"
+        kind = IFACES[iface] or raise AirPlayOS::Error, "unknown interface '#{iface}'"
         status ||= self.status
         if !enabled && !may_disable?(status, iface)
-          raise Ampberry::Error, "#{LABELS[kind]} is the only way in — connect the other interface first"
+          raise AirPlayOS::Error, "#{LABELS[kind]} is the only way in — connect the other interface first"
         end
 
         if kind == "wifi"
@@ -97,7 +97,7 @@ module Ampberry
       end
 
       def carrier?(iface)
-        File.read(File.join(Ampberry.root, "/sys/class/net/#{iface}/carrier")).include?("1")
+        File.read(File.join(AirPlayOS.root, "/sys/class/net/#{iface}/carrier")).include?("1")
       rescue SystemCallError
         false
       end

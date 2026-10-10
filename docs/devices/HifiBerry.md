@@ -21,7 +21,7 @@ http://HifiBerry.local/       # web UI: live log + player · Settings pane
 | Network | Ethernet `eth0`, DHCP lease `192.168.178.244` (MAC `dc:a6:32:b3:8b:c8`); Wi‑Fi and Bluetooth **disabled** (`dtoverlay=disable-wifi`, `disable-bt`); no onboarding hotspot, no Wi‑Fi fallback timer |
 | Hostname | `HifiBerry` (static, kept from hbos; the cloud-init seed would set `hifiberry` on a Clean reboot — same mDNS name) |
 | Downstream | external amplifier / powered speakers via RCA (gear: to be documented) |
-| Users | `pi` (sudo, SSH keys); `ampberry` + `shairport-sync` system users (nologin, no sudo) |
+| Users | `pi` (sudo, SSH keys); `airplay-os` + `shairport-sync` system users (nologin, no sudo) |
 | Base OS | Raspberry Pi OS Lite — Debian 13 (trixie), kernel `6.18.34+rpt-rpi-v8` (apt; Debian security auto-updates only; a kernel upgrade is pending — manual, listen-tested) |
 | Nix | Determinate Nix (multi-user), `trusted-users = root pi`, store 0.9 GB |
 
@@ -35,7 +35,7 @@ http://HifiBerry.local/       # web UI: live log + player · Settings pane
 | nixpkgs | 26.05 `7c8764b` · unstable `e7439b6` (audio only) · system-manager release-26.05 `8c7a4b8` | 2026-10-10 |
 | Settings | name "HifiBerry", no password, interpolation auto, S32_LE, `volume_max_db` **0 dB** (line-out at full scale — the amplifier has the knob), range 60 dB | 2026-10-10 |
 
-¹ `/etc/ampberry/release` on the box (`FLAKE_VERSION`), also in the Settings pane's footer.
+¹ `/etc/airplay-os/release` on the box (`FLAKE_VERSION`), also in the Settings pane's footer.
 
 Before 2026-10-10: HiFiBerry OS NG `hbos-full` 0.11 (installed 2026-06-26, 0.11 since
 2026-07-24) — PipeWire + WirePlumber, AudioControl, players MPD / Spotify Connect / AirPlay /

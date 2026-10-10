@@ -2,8 +2,8 @@
 
 require_relative "test_helper"
 
-class MetadataTest < AmpberryTest
-  M = Ampberry::Metadata
+class MetadataTest < AirPlayOSTest
+  M = AirPlayOS::Metadata
 
   def item(type, code, data = "") = M.encode_item(type, code, data)
 

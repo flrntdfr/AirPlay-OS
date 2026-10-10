@@ -8,14 +8,14 @@
 #   tools/apply-live.sh --from-switch    # resume after a failed switch: skip backup/purge/Nix install
 #
 # Steps: preflight → backup (scp'd off the device) → stop hbos units → purge hbos → install Nix →
-# copy flake to /opt/ampberry → system-manager switch → ampberry provision → install the
+# copy flake to /opt/airplay-os → system-manager switch → airplay-os provision → install the
 # cloud-init seed for Clean reboot → reboot → verify.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 DEVICE="${DEVICE:-ampberry}"            # systemConfigs.<id> in flake.nix = devices/<id>.json
-HOST="${AMPBERRY_HOST:-pi@${DEVICE}.local}"
-ALIAS="${AMPBERRY_ALIAS:-${HOST#*@}}"
+HOST="${AIRPLAY_OS_HOST:-pi@${DEVICE}.local}"
+ALIAS="${AIRPLAY_OS_ALIAS:-${HOST#*@}}"
 SSH=(ssh -o ConnectTimeout=10 -o HostKeyAlias="$ALIAS" "$HOST")
 STAMP="$(date +%Y%m%d-%H%M%S)"
 LOG="build/apply-${STAMP}.log"
@@ -106,11 +106,11 @@ remote 'test -x /nix/var/nix/profiles/default/bin/nix || { curl --proto "=https"
 # pi must be a trusted user: `system-manager switch --target-host` copies unsigned, locally built
 # paths into the Pi's store as pi (`nix copy --to ssh://`); the daemon rejects them otherwise.
 remote 'getent passwd shairport-sync >/dev/null || sudo useradd --system --no-create-home --shell /usr/sbin/nologin --groups audio --comment "Shairport Sync" shairport-sync; \
-	getent passwd ampberry >/dev/null || sudo useradd --system --no-create-home --shell /usr/sbin/nologin --groups audio --comment "Ampberry web UI" ampberry; \
-	sudo install -d -m 0750 -o root -g ampberry /var/lib/ampberry; sudo install -d -m 0755 /var/log/ampberry /etc/ampberry'
+	getent passwd airplay-os >/dev/null || sudo useradd --system --no-create-home --shell /usr/sbin/nologin --groups audio --comment "AirPlay OS web UI" airplay-os; \
+	sudo install -d -m 0750 -o root -g airplay-os /var/lib/airplay-os; sudo install -d -m 0755 /var/log/airplay-os /etc/airplay-os'
 
 # ---- 6. (no source copy) ---------------------------------------------------------------------------
-# The flake source travels inside the system closure (tmpfiles links /opt/ampberry into the store).
+# The flake source travels inside the system closure (tmpfiles links /opt/airplay-os into the store).
 fi # FROM_SWITCH
 
 # ---- 7. switch -------------------------------------------------------------------------------------
@@ -119,12 +119,12 @@ say "system-manager switch (built on the linux-builder, pushed with --target-hos
 nix run github:numtide/system-manager/release-26.05 -- switch --flake ".#${DEVICE}" --target-host "$HOST" --sudo
 # Record what is live, for Clean reboot / Redeploy. The system-manager CLI ships inside the closure
 # (environment.systemPackages), so nothing gets built on the Pi.
-remote 'sm=$(readlink -f /run/system-manager/sw/bin/system-manager); echo "${sm%/bin/system-manager}" | sudo tee /etc/ampberry/system-manager-path >/dev/null; \
-	readlink -f /nix/var/nix/profiles/system-manager-profiles/system-manager | sudo tee /etc/ampberry/system-path'
+remote 'sm=$(readlink -f /run/system-manager/sw/bin/system-manager); echo "${sm%/bin/system-manager}" | sudo tee /etc/airplay-os/system-manager-path >/dev/null; \
+	readlink -f /nix/var/nix/profiles/system-manager-profiles/system-manager | sudo tee /etc/airplay-os/system-path'
 
 # ---- 8. provision + seed --------------------------------------------------------------------------------
-say "ampberry provision"
-remote 'sudo /run/system-manager/sw/bin/ampberry provision'
+say "airplay-os provision"
+remote 'sudo /run/system-manager/sw/bin/airplay-os provision'
 say "install the cloud-init seed for Clean reboot"
 # scp on purpose: the seed carries the Wi-Fi PSK and pi's password hash, which must never enter the
 # (world-readable) Nix store — this is the one transfer that does not go through Nix.

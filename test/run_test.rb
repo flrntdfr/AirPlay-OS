@@ -2,8 +2,8 @@
 
 require_relative "test_helper"
 
-class RunTest < AmpberryTest
-  R = Ampberry::Run
+class RunTest < AirPlayOSTest
+  R = AirPlayOS::Run
   RUBY = RbConfig.ruby
 
   def test_real_execution_captures_both_streams
@@ -20,8 +20,8 @@ class RunTest < AmpberryTest
 
   def test_stdin_and_env
     assert_equal "HELLO\n", R.run(RUBY, "-ne", "print $_.upcase", stdin: "hello\n", quiet: true).out
-    assert_equal "v", R.run(RUBY, "-e", "print ENV['AMPBERRY_T']", env: { "AMPBERRY_T" => "v" }, quiet: true).out
-    refute ENV.key?("AMPBERRY_T")
+    assert_equal "v", R.run(RUBY, "-e", "print ENV['AIRPLAY_OS_T']", env: { "AIRPLAY_OS_T" => "v" }, quiet: true).out
+    refute ENV.key?("AIRPLAY_OS_T")
   end
 
   def test_failure_handling
@@ -41,7 +41,7 @@ class RunTest < AmpberryTest
   end
 
   def test_missing_binary
-    e = assert_raises(R::CommandError) { R.run("/nonexistent/binary/ampberry-x", quiet: true) }
+    e = assert_raises(R::CommandError) { R.run("/nonexistent/binary/airplay-os-x", quiet: true) }
     assert_match(/cannot execute/, e.message)
   end
 

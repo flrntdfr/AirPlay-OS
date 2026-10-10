@@ -2,12 +2,12 @@
 
 require_relative "test_helper"
 
-class SettingsTest < AmpberryTest
-  S = Ampberry::Settings
+class SettingsTest < AirPlayOSTest
+  S = AirPlayOS::Settings
 
   def setup
     install_defaults
-    File.unlink(Ampberry.path(:settings)) if File.exist?(Ampberry.path(:settings))
+    File.unlink(AirPlayOS.path(:settings)) if File.exist?(AirPlayOS.path(:settings))
   end
 
   def test_render_defaults
@@ -32,14 +32,14 @@ class SettingsTest < AmpberryTest
   end
 
   def test_render_rejects_invalid
-    e = assert_raises(Ampberry::Config::InvalidSettings) { S.render_conf(DEFAULTS.merge("volume_max_db" => 5)) }
+    e = assert_raises(AirPlayOS::Config::InvalidSettings) { S.render_conf(DEFAULTS.merge("volume_max_db" => 5)) }
     assert_match(/volume_max_db/, e.message)
-    assert_raises(Ampberry::Config::InvalidSettings) { S.render_conf(DEFAULTS.merge("name" => 'Kitchen "Amp"')) }
+    assert_raises(AirPlayOS::Config::InvalidSettings) { S.render_conf(DEFAULTS.merge("name" => 'Kitchen "Amp"')) }
   end
 
   def test_write_conf_is_atomic
     S.write_conf(S.render_conf(DEFAULTS))
-    assert File.size?(Ampberry.path(:shairport_conf))
+    assert File.size?(AirPlayOS.path(:shairport_conf))
     assert_empty Dir.glob("#{ROOT}/etc/.shairport-sync.conf.*")
   end
 
@@ -47,14 +47,14 @@ class SettingsTest < AmpberryTest
     with_runner(->(cmd, opts) { device_mock(cmd, opts) }) do
       eff = S.apply(settings: DEFAULTS.merge("name" => "Kitchen", "volume_max_db" => -9))
       assert_equal "Kitchen", eff["name"]
-      assert_equal({ "name" => "Kitchen", "volume_max_db" => -9 }, Ampberry::Config.load_settings)
-      assert_includes slurp(Ampberry.path(:shairport_conf)), "volume_max_db = -9.0;"
+      assert_equal({ "name" => "Kitchen", "volume_max_db" => -9 }, AirPlayOS::Config.load_settings)
+      assert_includes slurp(AirPlayOS.path(:shairport_conf)), "volume_max_db = -9.0;"
       assert_includes cmds, "systemctl enable --now nqptp"
       assert_includes cmds, "systemctl restart shairport-sync"
     end
     with_runner(->(cmd, opts) { device_mock(cmd, opts) }) do
       S.apply(settings: DEFAULTS)
-      assert_equal({}, Ampberry::Config.load_settings, "back to defaults → empty settings.json")
+      assert_equal({}, AirPlayOS::Config.load_settings, "back to defaults → empty settings.json")
     end
   end
 end

@@ -1,4 +1,4 @@
-// The live appliance log (/var/log/ampberry.log). On the home page it is the page: scrollable
+// The live appliance log (/var/log/airplay-os.log). On the home page it is the page: scrollable
 // history, following the tail unless you scrolled up. Elsewhere it is a passive backdrop that
 // keeps streaming. First request: the last 100 lines (/api/log?tail=100); afterwards it polls
 // /api/log?from=<offset> for the new bytes plus the redeploy state. Lines are added one by one,

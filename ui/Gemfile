@@ -8,7 +8,7 @@ gem "actionpack", "~> 7.2.3"
 gem "actionview", "~> 7.2.3"
 gem "activesupport", "~> 7.2.3"
 gem "propshaft", "~> 1.1"
-gem "puma", "~> 6.4"
+gem "puma", "~> 7.2"
 
 # UI: RubyUI (shadcn/ui port) on Phlex, Tailwind classes merged at render time; Stimulus via
 # importmap (no Node at runtime — Tailwind is compiled at Nix build time).

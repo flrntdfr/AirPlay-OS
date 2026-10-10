@@ -2,7 +2,7 @@
 
 require "digest/sha1"
 
-module Ampberry
+module AirPlayOS
   # Incremental parser for the shairport-sync metadata pipe and the now-playing state it feeds.
   # No I/O: feed() bytes in, items out; apply() folds items into the state.
   #
@@ -80,7 +80,7 @@ module Ampberry
         "playing" => s["playing"], "active" => s["active"],
         "title" => s["title"], "artist" => s["artist"], "album" => s["album"], "genre" => s["genre"],
         "client" => s["client"], "updated_at" => s["updated_at"],
-        # remote control of the sender (play/pause): see Ampberry::Remote
+        # remote control of the sender (play/pause): see AirPlayOS::Remote
         "dacp_id" => s["dacp_id"], "active_remote" => s["active_remote"],
         "duration_s" => s["progress"] ? s["progress"]["duration_s"] : (s["duration_ms"] ? s["duration_ms"] / 1000.0 : nil),
         "position_s" => position(now),

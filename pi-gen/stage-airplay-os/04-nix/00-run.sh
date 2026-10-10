@@ -12,10 +12,10 @@
 on_chroot <<'EOF'
 getent group shairport-sync >/dev/null || groupadd -r shairport-sync
 getent passwd shairport-sync >/dev/null || useradd -r -M -g shairport-sync -G audio -s /usr/sbin/nologin -c 'Shairport Sync' shairport-sync
-getent group ampberry >/dev/null || groupadd -r ampberry
-getent passwd ampberry >/dev/null || useradd -r -M -g ampberry -G audio -s /usr/sbin/nologin -c 'Ampberry web UI' ampberry
-install -d -m 0750 -o root -g ampberry /var/lib/ampberry
-install -d -m 0755 /var/log/ampberry
+getent group airplay-os >/dev/null || groupadd -r airplay-os
+getent passwd airplay-os >/dev/null || useradd -r -M -g airplay-os -G audio -s /usr/sbin/nologin -c 'AirPlay OS web UI' airplay-os
+install -d -m 0750 -o root -g airplay-os /var/lib/airplay-os
+install -d -m 0755 /var/log/airplay-os
 EOF
 
 # Nix (no daemon in the chroot; sandbox off because user namespaces are unavailable here)
@@ -37,16 +37,16 @@ set -e
 . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh 2>/dev/null || true
 export PATH=/nix/var/nix/profiles/default/bin:\$PATH
 export NIX_REMOTE=
-install -d /nix/var/nix/gcroots /etc/ampberry
-nix build --no-link --print-out-paths "path:/usr/local/src/ampberry#systemConfigs.${AIRPLAY_OS_DEVICE:-ampberry}" > /etc/ampberry/system-path
+install -d /nix/var/nix/gcroots /etc/airplay-os
+nix build --no-link --print-out-paths "path:/usr/local/src/airplay-os#systemConfigs.${AIRPLAY_OS_DEVICE:-ampberry}" > /etc/airplay-os/system-path
 # the system-manager CLI is part of the closure (environment.systemPackages): record it from there
-sw=\$(nix-store -qR "\$(cat /etc/ampberry/system-path)" | grep -- '-system-manager-path\$' | head -1)
-sm=\$(readlink -f "\$sw/bin/system-manager"); echo "\${sm%/bin/system-manager}" > /etc/ampberry/system-manager-path
-ln -sfn "\$(cat /etc/ampberry/system-manager-path)" /nix/var/nix/gcroots/ampberry-system-manager
-ln -sfn "\$(cat /etc/ampberry/system-path)" /nix/var/nix/gcroots/ampberry-system
+sw=\$(nix-store -qR "\$(cat /etc/airplay-os/system-path)" | grep -- '-system-manager-path\$' | head -1)
+sm=\$(readlink -f "\$sw/bin/system-manager"); echo "\${sm%/bin/system-manager}" > /etc/airplay-os/system-manager-path
+ln -sfn "\$(cat /etc/airplay-os/system-manager-path)" /nix/var/nix/gcroots/airplay-os-system-manager
+ln -sfn "\$(cat /etc/airplay-os/system-path)" /nix/var/nix/gcroots/airplay-os-system
 nix-collect-garbage -d >/dev/null
 nix store optimise 2>/dev/null || true
-echo "system closure: \$(cat /etc/ampberry/system-path)"
+echo "system closure: \$(cat /etc/airplay-os/system-path)"
 du -sh /nix/store
 EOF
 
@@ -60,4 +60,4 @@ done
 systemctl enable nix-daemon.socket
 EOF
 
-log "nix + ampberry system closure baked into the image"
+log "nix + airplay-os system closure baked into the image"

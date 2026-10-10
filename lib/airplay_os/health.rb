@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-module Ampberry
-  # The quarter-hourly appliance health line for the live log (ampberry-health.timer, on the clock):
+module AirPlayOS
+  # The quarter-hourly appliance health line for the live log (airplay-os-health.timer, on the clock):
   #   cpu 3% · mem 29% · 48.2°C          (DEGRADED · … when hot or out of memory)
   # Reads /sys and /proc only — no privilege, no external commands.
   module Health
@@ -27,13 +27,13 @@ module Ampberry
       end
 
       def temperature_c
-        File.read(File.join(Ampberry.root, "/sys/class/thermal/thermal_zone0/temp")).to_i / 1000.0
+        File.read(File.join(AirPlayOS.root, "/sys/class/thermal/thermal_zone0/temp")).to_i / 1000.0
       rescue SystemCallError
         nil
       end
 
       def mem_percent
-        info = File.read(File.join(Ampberry.root, "/proc/meminfo"))
+        info = File.read(File.join(AirPlayOS.root, "/proc/meminfo"))
         total = info[/^MemTotal:\s+(\d+)/, 1].to_f
         avail = info[/^MemAvailable:\s+(\d+)/, 1].to_f
         return nil unless total.positive?
@@ -56,7 +56,7 @@ module Ampberry
       end
 
       def cpu_times
-        line = File.read(File.join(Ampberry.root, "/proc/stat")).lines.find { |l| l.start_with?("cpu ") }
+        line = File.read(File.join(AirPlayOS.root, "/proc/stat")).lines.find { |l| l.start_with?("cpu ") }
         return nil unless line
 
         f = line.split[1..].map(&:to_i)

@@ -60,7 +60,7 @@ class Views::Setup::Show < Views::Base
       end
       div(class: "flex items-center gap-3") do
         Button(type: :submit) { "Join" }
-        span(class: "text-xs text-muted-foreground") { "the hotspot drops while Ampberry joins; reconnect your phone afterwards" }
+        span(class: "text-xs text-muted-foreground") { "the hotspot drops while AirPlay OS joins; reconnect your phone afterwards" }
       end
     end
   end

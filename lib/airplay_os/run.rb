@@ -2,17 +2,17 @@
 
 require "shellwords"
 
-module Ampberry
+module AirPlayOS
   # Command runner used by every module.
-  #   r   = Ampberry::Run.run("systemctl", "restart", "shairport-sync", timeout: 60)
-  #   out = Ampberry::Run.capture("nmcli", "-t", "device", "status")
+  #   r   = AirPlayOS::Run.run("systemctl", "restart", "shairport-sync", timeout: 60)
+  #   out = AirPlayOS::Run.capture("nmcli", "-t", "device", "status")
   # * Commands are argv arrays, never shell strings.
   # * stdout/stderr are read concurrently so large outputs cannot deadlock.
   # * A timeout (default 600 s) kills the child; status 124 is reported, like coreutils timeout.
   # * Run.runner = ->(cmd, opts) { {status:, out:, err:} } lets tests mock all execution.
   # * Run.dry_run = true skips commands unless they are marked read_only: true.
   module Run
-    class CommandError < Ampberry::Error
+    class CommandError < AirPlayOS::Error
       attr_reader :result
 
       def initialize(message, result = nil)

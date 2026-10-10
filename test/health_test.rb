@@ -2,8 +2,8 @@
 
 require_relative "test_helper"
 
-class HealthTest < AmpberryTest
-  H = Ampberry::Health
+class HealthTest < AirPlayOSTest
+  H = AirPlayOS::Health
 
   def setup
     mkdirs("sys/class/thermal/thermal_zone0", "proc")

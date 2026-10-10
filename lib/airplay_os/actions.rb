@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-module Ampberry
+module AirPlayOS
   # The allow-list of things the unprivileged web UI may ask root to do.
   #   built-in actions: code here, with declared, validated parameters
-  #   custom actions:   /etc/ampberry/actions.json (root-owned, shipped by the Nix flake):
+  #   custom actions:   /etc/airplay-os/actions.json (root-owned, shipped by the Nix flake):
   #                     { "actions": [ { "id", "label", "description", "exec": [argv...],
   #                                      "timeout", "confirm", "danger" } ] }
   # exec must be an argv whose program is an absolute path; it is never passed through a shell and
@@ -19,7 +19,7 @@ module Ampberry
                             code: lambda { |p|
                               s = (p["settings"] || {}).transform_keys(&:to_s)
                               problems = Config.validate_settings(s)
-                              raise Ampberry::Error, "invalid settings: #{problems.join('; ')}" unless problems.empty?
+                              raise AirPlayOS::Error, "invalid settings: #{problems.join('; ')}" unless problems.empty?
 
                               eff = Config.effective_settings.select { |k, _| Config::SCHEMA.key?(k) }
                               { "settings" => Settings.apply(settings: eff.merge(s)) }
@@ -42,7 +42,7 @@ module Ampberry
                                { "restarted" => %w[nqptp shairport-sync avahi-daemon] }
                              } },
       "redeploy" => { label: "Redeploy", params: {}, confirm: true, danger: true,
-                      description: "Re-applies the Nix flake from /opt/ampberry (system-manager switch) and re-runs provisioning in the background; the log streams behind the page.",
+                      description: "Re-applies the Nix flake from /opt/airplay-os (system-manager switch) and re-runs provisioning in the background; the log streams behind the page.",
                       code: ->(_p) { Redeploy.start(reason: "web ui") } },
       # The Update button: builds the release the last check found, on top of the shipped flake,
       # and switches to it (audio stops for the switch). Nothing to confirm; a Redeploy reverts.
@@ -51,7 +51,7 @@ module Ampberry
                               code: lambda { |_p|
                                 u = Updates.status
                                 unless u["latest"] && u["up_to_date"] == false
-                                  raise Ampberry::Error, "no newer shairport-sync release is known — check for updates first"
+                                  raise AirPlayOS::Error, "no newer shairport-sync release is known — check for updates first"
                                 end
 
                                 Redeploy.start(reason: "web ui", update: { "version" => u["latest"], "tag" => u["latest_tag"] || u["latest"] })
@@ -68,29 +68,29 @@ module Ampberry
       def builtin_ids = BUILTIN.keys.sort
 
       # Custom actions from the config file, validated. Returns { id => spec }.
-      def load_custom(path: Ampberry.path(:actions))
+      def load_custom(path: AirPlayOS.path(:actions))
         return {} unless File.exist?(path)
 
         cfg = Config.load_json(path)
         list = cfg.fetch("actions", [])
-        raise Ampberry::Error, "#{path}: 'actions' must be an array" unless list.is_a?(Array)
+        raise AirPlayOS::Error, "#{path}: 'actions' must be an array" unless list.is_a?(Array)
 
         list.each_with_object({}) do |a, custom|
-          raise Ampberry::Error, "#{path}: every action must be an object" unless a.is_a?(Hash)
+          raise AirPlayOS::Error, "#{path}: every action must be an object" unless a.is_a?(Hash)
 
           id = a["id"].to_s
-          raise Ampberry::Error, "#{path}: invalid action id '#{id}'" unless id.match?(ID_RE)
-          raise Ampberry::Error, "#{path}: action '#{id}' collides with a built-in" if BUILTIN.key?(id)
-          raise Ampberry::Error, "#{path}: action '#{id}' defined twice" if custom.key?(id)
+          raise AirPlayOS::Error, "#{path}: invalid action id '#{id}'" unless id.match?(ID_RE)
+          raise AirPlayOS::Error, "#{path}: action '#{id}' collides with a built-in" if BUILTIN.key?(id)
+          raise AirPlayOS::Error, "#{path}: action '#{id}' defined twice" if custom.key?(id)
 
           exec = a["exec"]
           unless exec.is_a?(Array) && !exec.empty? && exec.all?(String)
-            raise Ampberry::Error, "#{path}: action '#{id}': exec must be a non-empty array of strings"
+            raise AirPlayOS::Error, "#{path}: action '#{id}': exec must be a non-empty array of strings"
           end
-          raise Ampberry::Error, "#{path}: action '#{id}': exec program must be an absolute path" unless exec.first.start_with?("/")
+          raise AirPlayOS::Error, "#{path}: action '#{id}': exec program must be an absolute path" unless exec.first.start_with?("/")
 
           timeout = a.fetch("timeout", DEFAULT_TIMEOUT)
-          raise Ampberry::Error, "#{path}: action '#{id}': timeout must be 1..3600" unless timeout.is_a?(Integer) && timeout.between?(1, 3600)
+          raise AirPlayOS::Error, "#{path}: action '#{id}': timeout must be 1..3600" unless timeout.is_a?(Integer) && timeout.between?(1, 3600)
 
           custom[id] = { "id" => id, "label" => (a["label"] || id).to_s, "description" => a["description"].to_s,
                          "exec" => exec, "timeout" => timeout, "confirm" => a["confirm"] ? true : false,
@@ -99,7 +99,7 @@ module Ampberry
       end
 
       # Public catalogue for the UI (no code, no exec details).
-      def list(path: Ampberry.path(:actions))
+      def list(path: AirPlayOS.path(:actions))
         builtins = BUILTIN.sort.map do |id, b|
           { "id" => id, "label" => b[:label], "description" => b[:description].to_s, "params" => b[:params].transform_values(&:to_s),
             "confirm" => b[:confirm] ? true : false, "danger" => b[:danger] ? true : false, "custom" => false }
@@ -112,7 +112,7 @@ module Ampberry
 
       # Returns { "ok" => true, "action" => id, "result" => {...} [, after: proc] }
       #      or { "ok" => false, "action" => id, "error" => "..." [, "output" => "..."] }.
-      def run_action(id, params = {}, peer: nil, path: Ampberry.path(:actions))
+      def run_action(id, params = {}, peer: nil, path: AirPlayOS.path(:actions))
         params ||= {}
         return err(id, "invalid action id") unless id.is_a?(String) && id.match?(ID_RE)
         return err(id, "params must be an object") unless params.is_a?(Hash)
@@ -145,7 +145,7 @@ module Ampberry
 
         custom = begin
           load_custom(path: path)
-        rescue Ampberry::Error => e
+        rescue AirPlayOS::Error => e
           return err(id, "actions config invalid: #{e.message}")
         end
         c = custom[id] or return err(id, "unknown action")

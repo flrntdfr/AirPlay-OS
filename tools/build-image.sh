@@ -11,7 +11,7 @@
 #                                    (Wi‑Fi, SSH keys, hotspot PSK, pi's password hash) is baked in
 #   CONTINUE=1 …                     re-run after a failure, reusing finished stages
 #   SKIP_BASE=1 …                    skip stage0-2 (already built in build/pi-gen/work)
-#   AIRPLAY_OS_VERSION=v40 …         stamped into /etc/ampberry-release (CI passes the build number)
+#   AIRPLAY_OS_VERSION=v40 …         stamped into /etc/airplay-os-release (CI passes the build number)
 #
 # Output: build/pi-gen/deploy/<date>-airplay-os-lite.img.xz (+ .info, .sbom)
 # Log:    build/image-build.log
@@ -37,22 +37,22 @@ if [ ! -d "$PG/.git" ]; then
 fi
 
 # 1. our stage: scripts, the flake source, and (personal image) the rendered seed
-rm -rf "$PG/stage-ampberry"
-cp -R pi-gen/stage-ampberry "$PG/stage-ampberry"
-chmod +x "$PG"/stage-ampberry/*/*.sh "$PG"/stage-ampberry/prerun.sh
-mkdir -p "$PG/stage-ampberry/02-cloud-init/files" "$PG/stage-ampberry/03-flake/files"
+rm -rf "$PG/stage-airplay-os"
+cp -R pi-gen/stage-airplay-os "$PG/stage-airplay-os"
+chmod +x "$PG"/stage-airplay-os/*/*.sh "$PG"/stage-airplay-os/prerun.sh
+mkdir -p "$PG/stage-airplay-os/02-cloud-init/files" "$PG/stage-airplay-os/03-flake/files"
 if [ "$GENERIC" != 1 ]; then
 	nix shell nixpkgs#ruby_3_4 --command ruby tools/build-user-data.rb --device "$DEVICE" --out build --secrets "$SECRETS"
 	[ -s build/network-config.device ] && cp build/network-config.device build/network-config # byte-identical to the running device
-	cp build/user-data build/network-config build/meta-data "$PG/stage-ampberry/02-cloud-init/files/"
+	cp build/user-data build/network-config build/meta-data "$PG/stage-airplay-os/02-cloud-init/files/"
 fi
 # the flake source exactly as Nix sees it (git-filtered: no build/, no secrets, no .git).
 # `nix flake prefetch` always yields the store copy; `metadata` has no "path" with lazy trees.
 SRC="$(nix flake prefetch --json . | python3 -c 'import json,sys; print(json.load(sys.stdin)["storePath"])')"
 [ -f "$SRC/flake.nix" ] || { echo "could not get the flake's store copy ($SRC)" >&2; exit 1; }
-rm -rf "$PG/stage-ampberry/03-flake/files/ampberry"
-cp -R "$SRC/" "$PG/stage-ampberry/03-flake/files/ampberry" # the flake = the repo root
-chmod -R u+w "$PG/stage-ampberry/03-flake/files/ampberry"
+rm -rf "$PG/stage-airplay-os/03-flake/files/airplay-os"
+cp -R "$SRC/" "$PG/stage-airplay-os/03-flake/files/airplay-os" # the flake = the repo root
+chmod -R u+w "$PG/stage-airplay-os/03-flake/files/airplay-os"
 
 # 2. config: committed part + build-specific lines
 {
@@ -65,7 +65,7 @@ chmod -R u+w "$PG/stage-ampberry/03-flake/files/ampberry"
 		echo 'FIRST_USER_PASS="airplay-os"'
 		echo 'PUBKEY_ONLY_SSH=0'
 	else
-		echo "FIRST_USER_PASS=\"${PI_FIRST_USER_PASS:-ampberry}\""   # locked for SSH (PUBKEY_ONLY_SSH), console only
+		echo "FIRST_USER_PASS=\"${PI_FIRST_USER_PASS:-airplay-os}\""   # locked for SSH (PUBKEY_ONLY_SSH), console only
 		echo 'PUBKEY_ONLY_SSH=1'
 		echo "PUBKEY_SSH_FIRST_USER=\"${SSH_AUTHORIZED_KEYS}\""
 	fi

@@ -3,13 +3,13 @@
 require_relative "test_helper"
 
 # The minimal AirPlay status lines the metadata daemon writes to the live log.
-class MetadataAnnounceTest < AmpberryTest
+class MetadataAnnounceTest < AirPlayOSTest
   def setup
-    @d = Ampberry::MetadataDaemon.new(pipe: File.join(ROOT, "nonexistent-pipe"), run_dir: File.join(ROOT, "run/ampberry-announce"))
+    @d = AirPlayOS::MetadataDaemon.new(pipe: File.join(ROOT, "nonexistent-pipe"), run_dir: File.join(ROOT, "run/airplay-os-announce"))
   end
 
   def feed(type, code, data = "")
-    @d.parser.feed(Ampberry::Metadata.encode_item(type, code, data)).each { |i| @d.parser.apply(i) }
+    @d.parser.feed(AirPlayOS::Metadata.encode_item(type, code, data)).each { |i| @d.parser.apply(i) }
   end
 
   # stderr lines emitted by announce after the given events, without the timestamp/level prefix

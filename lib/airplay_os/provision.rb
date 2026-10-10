@@ -1,13 +1,13 @@
 # frozen_string_literal: true
 
-module Ampberry
+module AirPlayOS
   # Runtime provisioning, run as root after the Nix flake has been activated by system-manager
-  # (first boot via cloud-init, Clean reboot, or `ampberry provision` by hand). Everything the
+  # (first boot via cloud-init, Clean reboot, or `airplay-os provision` by hand). Everything the
   # flake cannot express lives here; each step is idempotent; the first failure stops the run.
   module Provision
     UNITS = %w[
-      ampberry-firewall.service nqptp.service shairport-sync.service ampberry-metadata.service ampberry-log.service
-      ampberry-control.socket ampberry-ui.service ampberry-wifi-fallback.timer avahi-daemon.service
+      airplay-os-firewall.service nqptp.service shairport-sync.service airplay-os-metadata.service airplay-os-log.service
+      airplay-os-control.socket airplay-os-ui.service airplay-os-wifi-fallback.timer avahi-daemon.service
     ].freeze
 
     class << self
@@ -33,7 +33,7 @@ module Ampberry
           }],
           ["minimize", -> { System.minimize }],
           ["wifi", lambda {
-            next "no Wi‑Fi on this device" unless Ampberry.device["wifi"]
+            next "no Wi‑Fi on this device" unless AirPlayOS.device["wifi"]
 
             begin
               Wifi.ensure["action"]
@@ -45,7 +45,7 @@ module Ampberry
           ["reboot", lambda {
             next "not needed" unless System.needs_reboot?
 
-            File.unlink(Ampberry.path(:need_reboot)) unless Run.dry_run
+            File.unlink(AirPlayOS.path(:need_reboot)) unless Run.dry_run
             Log.info("config.txt changed: rebooting to apply the device tree")
             Run.run("systemctl", "reboot", timeout: 60)
             "rebooting"
@@ -57,7 +57,7 @@ module Ampberry
       def run_all(skip: [])
         done = {}
         t0 = Time.now
-        Log.info("ampberry provision #{Ampberry::VERSION} starting#{Run.dry_run ? ' (dry-run)' : ''}")
+        Log.info("airplay-os provision #{AirPlayOS::VERSION} starting#{Run.dry_run ? ' (dry-run)' : ''}")
         steps.each do |name, code|
           if skip.include?(name)
             Log.info("[#{name}] skipped")
@@ -70,12 +70,12 @@ module Ampberry
             r = code.call
           rescue StandardError => e
             Log.error("[#{name}] FAILED: #{e.message}")
-            raise Ampberry::Error, "provision step '#{name}' failed: #{e.message}"
+            raise AirPlayOS::Error, "provision step '#{name}' failed: #{e.message}"
           end
           done[name] = r.is_a?(String) ? r : "ok"
           Log.info(format("[%s] done (%ds)", name, Time.now - t))
         end
-        Log.info(format("ampberry provision finished in %ds", Time.now - t0))
+        Log.info(format("airplay-os provision finished in %ds", Time.now - t0))
         done
       end
     end

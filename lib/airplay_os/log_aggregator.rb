@@ -3,24 +3,24 @@
 require "json"
 require "fileutils"
 
-module Ampberry
-  # The appliance's one live log: /var/log/ampberry.log, streamed as the backdrop of every UI page.
+module AirPlayOS
+  # The appliance's one live log: /var/log/airplay-os.log, streamed as the backdrop of every UI page.
   # Follows the journal for the units that matter to a speaker and writes compact lines:
   #   20:41:07 airplay  Connection from 192.168.178.40 ("Flo's iPhone")
   #   20:41:09 airplay  ⏵ Blue in Green â Miles Davis
   #   20:55:12 control  action settings-apply (uid 998)
   #   21:03:40 kernel   Under-voltage detected!
-  # Runs as root (journal access) in ampberry-log.service; the file is world-readable and size-capped
+  # Runs as root (journal access) in airplay-os-log.service; the file is world-readable and size-capped
   # (rotation keeps the tail; readers that poll by offset notice the shrink and start over).
   class LogAggregator
     # Sources that make it into the log (unit name without .service / @instance → tag). journalctl
     # cannot OR unit filters with a kernel match ("+" only joins plain terms), so the whole journal
     # is followed and selected here — on this appliance that is a few lines a minute.
     TAGS = {
-      "shairport-sync" => "airplay", "nqptp" => "ptp", "ampberry-metadata" => "airplay", "ampberry-ui" => "ui",
-      "ampberry-control" => "control", "ampberry-redeploy" => "redeploy", "ampberry-wifi-fallback" => "wifi",
-      "ampberry-health" => "health", "ampberry-updates" => "update",
-      "ampberry-firewall" => "firewall", "ampberry-log" => "log", "avahi-daemon" => "mdns", "NetworkManager" => "network",
+      "shairport-sync" => "airplay", "nqptp" => "ptp", "airplay-os-metadata" => "airplay", "airplay-os-ui" => "ui",
+      "airplay-os-control" => "control", "airplay-os-redeploy" => "redeploy", "airplay-os-wifi-fallback" => "wifi",
+      "airplay-os-health" => "health", "airplay-os-updates" => "update",
+      "airplay-os-firewall" => "firewall", "airplay-os-log" => "log", "avahi-daemon" => "mdns", "NetworkManager" => "network",
       "ssh" => "ssh", "cloud-init" => "provision", "cloud-final" => "provision", "unattended-upgrades" => "updates",
       "kernel" => "kernel"
     }.freeze
@@ -28,7 +28,7 @@ module Ampberry
     # Per-source relevance filters (nil = everything). The point is signal, not completeness.
     FILTERS = {
       "kernel" => /voltage|throttl|pcm512x|snd_|hifiberry|bcm2835|brcmfmac|wlan0|Out of memory|I\/O error|segfault/i,
-      "network" => /wlan0|Ampberry-setup|hotspot|state change|connected|disconnect|dhcp4|address|carrier|policy/i,
+      "network" => /wlan0|AirPlay-OS-setup|hotspot|state change|connected|disconnect|dhcp4|address|carrier|policy/i,
       "mdns" => /Registering|established|Withdraw|New relevant interface|Interface .* no longer|Host name|Server startup/i,
       "ssh" => /Accepted|Failed|Invalid user|Disconnected from|Received disconnect|session (opened|closed)|Server listening/,
       "updates" => /Packages that|Installing|upgraded|Packages that were upgraded|security|No packages found|error/i,
@@ -49,7 +49,7 @@ module Ampberry
     attr_reader :path
     attr_accessor :max_size, :keep
 
-    def initialize(path: Ampberry.path(:applog))
+    def initialize(path: AirPlayOS.path(:applog))
       @path = path
       @max_size = MAX_SIZE
       @keep = KEEP
@@ -63,7 +63,7 @@ module Ampberry
     # Follow the journal forever; restart journalctl if it exits.
     def run
       %w[TERM INT].each { |s| trap(s) { @stop = true } }
-      write_line(format_line(Time.now, "log", "== ampberry log #{Ampberry::VERSION} started"))
+      write_line(format_line(Time.now, "log", "== airplay-os log #{AirPlayOS::VERSION} started"))
       until @stop
         r, w = IO.pipe
         pid = Process.spawn(*journalctl_cmd, out: w, err: w, in: File::NULL)

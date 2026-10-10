@@ -3,8 +3,8 @@
 require_relative "test_helper"
 
 # The Network card: status of wlan0/eth0 from nmcli, the lock-out rule, and the switches.
-class NetworkTest < AmpberryTest
-  N = Ampberry::Network
+class NetworkTest < AirPlayOSTest
+  N = AirPlayOS::Network
 
   DEVICES = "wlan0:wifi:connected:netplan-wlan0-Pass the Juice\nlo:loopback:connected (externally):lo\np2p-dev-wlan0:wifi-p2p:disconnected:\neth0:ethernet:unavailable:\n"
   WIFI_LIST = "no:Neighbour\nyes:Pass the Juice\n"
@@ -48,7 +48,7 @@ class NetworkTest < AmpberryTest
       assert_equal "off", N.describe(st["eth0"])
     end
     with_runner(->(cmd, _o) { nmcli(cmd) }) do
-      hotspot = N.status(device_text: "wlan0:wifi:connected:Ampberry-setup\n", radio_text: "enabled\n", wifi_text: "")
+      hotspot = N.status(device_text: "wlan0:wifi:connected:AirPlay-OS-setup\n", radio_text: "enabled\n", wifi_text: "")
       refute hotspot["wlan0"]["connected"], "the onboarding hotspot is not a connection to the LAN"
       assert_equal "absent", N.describe(hotspot["eth0"])
     end
@@ -69,7 +69,7 @@ class NetworkTest < AmpberryTest
 
   def test_set_refuses_to_cut_the_only_way_in_and_switches_otherwise
     with_runner(->(cmd, _o) { nmcli(cmd) }) do
-      e = assert_raises(Ampberry::Error) { N.set("wlan0", false) }
+      e = assert_raises(AirPlayOS::Error) { N.set("wlan0", false) }
       assert_match(/only way in/, e.message)
       refute cmds.any? { |c| c.include?("radio wifi off") }
 
@@ -81,19 +81,19 @@ class NetworkTest < AmpberryTest
       assert cmds.any? { |c| c.end_with?("device connect eth0") }
       N.set("wlan0", true)
       assert_includes cmds, "nmcli radio wifi on"
-      assert_raises(Ampberry::Error) { N.set("usb0", true) }
+      assert_raises(AirPlayOS::Error) { N.set("usb0", true) }
     end
   end
 
   def test_actions_are_exposed
-    ids = Ampberry::Actions.list(path: "/nonexistent").map { |a| a["id"] }
+    ids = AirPlayOS::Actions.list(path: "/nonexistent").map { |a| a["id"] }
     assert_includes ids, "network-status"
     assert_includes ids, "network-set"
     with_runner(->(cmd, _o) { nmcli(cmd) }) do
-      r = Ampberry::Actions.run_action("network-set", { "iface" => "wlan0", "enabled" => false })
+      r = AirPlayOS::Actions.run_action("network-set", { "iface" => "wlan0", "enabled" => false })
       refute r["ok"]
       assert_match(/only way in/, r["error"])
-      r = Ampberry::Actions.run_action("network-status")
+      r = AirPlayOS::Actions.run_action("network-status")
       assert r["ok"]
       assert_equal "connected", r["result"]["network"]["wlan0"]["state"]
     end

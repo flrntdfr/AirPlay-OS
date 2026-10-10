@@ -28,6 +28,15 @@ Then consult [connect to the network](./docs/NETWORK.md).
 
 Consult [development](./docs/DEVELOPMENT.md).
 
+## Credits
+
+- raspberry-pi-imag
+- Cloud-init
+- Ruby on Rails
+- Ruby API and CLI
+- Nix Flake
+- Github action
+
 ---
 
 <sup>*</sup> < 1 GB

@@ -1,29 +1,29 @@
 # frozen_string_literal: true
 
-# Ampberry runtime library — the part of the appliance the Nix flake cannot express because it
+# AirPlay OS runtime library — the part of the appliance the Nix flake cannot express because it
 # changes at runtime: settings → shairport-sync.conf, the firewall, Wi-Fi onboarding, the control
 # API the web UI talks to, and the metadata daemon. Ruby stdlib only.
 #
-# Every filesystem location goes through Ampberry.path so the tests can relocate the whole tool
-# with AMPBERRY_ROOT (a prefix) without touching the real system.
-module Ampberry
+# Every filesystem location goes through AirPlayOS.path so the tests can relocate the whole tool
+# with AIRPLAY_OS_ROOT (a prefix) without touching the real system.
+module AirPlayOS
   VERSION = "0.2.0"
 
   PATHS = {
-    etc: "/etc/ampberry",
-    defaults: "/etc/ampberry/defaults.json",
-    secrets: "/etc/ampberry/secrets.json",
-    actions: "/etc/ampberry/actions.json",
-    state: "/var/lib/ampberry",
-    settings: "/var/lib/ampberry/settings.json",
-    wifi_state: "/var/lib/ampberry/wifi-state.json",
-    ui_secret: "/var/lib/ampberry/ui-secret",
-    need_reboot: "/var/lib/ampberry/need-reboot",
-    log: "/var/log/ampberry",
-    run_dir: "/run/ampberry",
-    now_playing: "/run/ampberry/now-playing.json",
-    updates: "/run/ampberry/updates.json",
-    control_socket: "/run/ampberry-control.sock",
+    etc: "/etc/airplay-os",
+    defaults: "/etc/airplay-os/defaults.json",
+    secrets: "/etc/airplay-os/secrets.json",
+    actions: "/etc/airplay-os/actions.json",
+    state: "/var/lib/airplay-os",
+    settings: "/var/lib/airplay-os/settings.json",
+    wifi_state: "/var/lib/airplay-os/wifi-state.json",
+    ui_secret: "/var/lib/airplay-os/ui-secret",
+    need_reboot: "/var/lib/airplay-os/need-reboot",
+    log: "/var/log/airplay-os",
+    run_dir: "/run/airplay-os",
+    now_playing: "/run/airplay-os/now-playing.json",
+    updates: "/run/airplay-os/updates.json",
+    control_socket: "/run/airplay-os-control.sock",
     boot: "/boot/firmware",
     config_txt: "/boot/firmware/config.txt",
     network_config: "/boot/firmware/network-config",
@@ -34,27 +34,27 @@ module Ampberry
     hifiberry_key: "/usr/share/keyrings/hifiberry-archive-keyring.gpg",
     hifiberry_user: "/etc/hifiberry.user",
     pi_home: "/home/pi",
-    flake: "/opt/ampberry",
-    release: "/etc/ampberry/release",
-    device: "/etc/ampberry/device.json", # devices/<id>.json, shipped by the flake
-    update_flake: "/var/lib/ampberry/shairport-update", # written by `redeploy run --update-shairport`
-    system_path: "/etc/ampberry/system-path",
-    system_manager_path: "/etc/ampberry/system-manager-path",
-    redeploy_log: "/var/log/ampberry/redeploy.log",
-    redeploy_state: "/var/log/ampberry/redeploy.json",
-    applog: "/var/log/ampberry.log"
+    flake: "/opt/airplay-os",
+    release: "/etc/airplay-os/release",
+    device: "/etc/airplay-os/device.json", # devices/<id>.json, shipped by the flake
+    update_flake: "/var/lib/airplay-os/shairport-update", # written by `redeploy run --update-shairport`
+    system_path: "/etc/airplay-os/system-path",
+    system_manager_path: "/etc/airplay-os/system-manager-path",
+    redeploy_log: "/var/log/airplay-os/redeploy.log",
+    redeploy_state: "/var/log/airplay-os/redeploy.json",
+    applog: "/var/log/airplay-os.log"
   }.freeze
 
   class Error < StandardError; end
 
-  # What the tools assume when /etc/ampberry/device.json is missing (tests, the Mac preview,
-  # a box provisioned before device definitions existed): the original Ampberry.
+  # What the tools assume when /etc/airplay-os/device.json is missing (tests, the Mac preview,
+  # a box provisioned before device definitions existed): the original AirPlayOS.
   DEFAULT_DEVICE = {
     "id" => "ampberry", "hostname" => "ampberry", "pretty_name" => "Ampberry", "description" => "AirPlay 2 speaker",
     "overlay" => "hifiberry-dacplus-std", "wifi" => true, "bluetooth" => false, "primary_interface" => "wlan0"
   }.freeze
 
-  # The device this box is (devices/<id>.json as shipped to /etc/ampberry/device.json).
+  # The device this box is (devices/<id>.json as shipped to /etc/airplay-os/device.json).
   def self.device
     @device ||= begin
       require "json"
@@ -67,11 +67,11 @@ module Ampberry
   def self.reset_device! = @device = nil
 
   def self.root
-    ENV.fetch("AMPBERRY_ROOT", "")
+    ENV.fetch("AIRPLAY_OS_ROOT", "")
   end
 
   def self.path(key)
-    raise ArgumentError, "Ampberry.path: unknown key #{key.inspect}" unless PATHS.key?(key)
+    raise ArgumentError, "AirPlayOS.path: unknown key #{key.inspect}" unless PATHS.key?(key)
 
     root + PATHS.fetch(key)
   end
@@ -81,21 +81,21 @@ module Ampberry
     { shairport_sync: "5.5.2", nqptp: "1.2.8" }
   end
 
-  autoload :Run, "ampberry/run"
-  autoload :Log, "ampberry/log"
-  autoload :Config, "ampberry/config"
-  autoload :Settings, "ampberry/settings"
-  autoload :Wifi, "ampberry/wifi"
-  autoload :System, "ampberry/system"
-  autoload :Metadata, "ampberry/metadata"
-  autoload :MetadataDaemon, "ampberry/metadata_daemon"
-  autoload :Actions, "ampberry/actions"
-  autoload :Control, "ampberry/control"
-  autoload :Provision, "ampberry/provision"
-  autoload :Redeploy, "ampberry/redeploy"
-  autoload :LogAggregator, "ampberry/log_aggregator"
-  autoload :Remote, "ampberry/remote"
-  autoload :Health, "ampberry/health"
-  autoload :Updates, "ampberry/updates"
-  autoload :Network, "ampberry/network"
+  autoload :Run, "airplay_os/run"
+  autoload :Log, "airplay_os/log"
+  autoload :Config, "airplay_os/config"
+  autoload :Settings, "airplay_os/settings"
+  autoload :Wifi, "airplay_os/wifi"
+  autoload :System, "airplay_os/system"
+  autoload :Metadata, "airplay_os/metadata"
+  autoload :MetadataDaemon, "airplay_os/metadata_daemon"
+  autoload :Actions, "airplay_os/actions"
+  autoload :Control, "airplay_os/control"
+  autoload :Provision, "airplay_os/provision"
+  autoload :Redeploy, "airplay_os/redeploy"
+  autoload :LogAggregator, "airplay_os/log_aggregator"
+  autoload :Remote, "airplay_os/remote"
+  autoload :Health, "airplay_os/health"
+  autoload :Updates, "airplay_os/updates"
+  autoload :Network, "airplay_os/network"
 end

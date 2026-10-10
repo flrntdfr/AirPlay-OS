@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Api
-  # The live appliance log behind every page: bytes of /var/log/ampberry.log after a given offset,
+  # The live appliance log behind every page: bytes of /var/log/airplay-os.log after a given offset,
   # plus the redeploy state (so the UI can brighten the backdrop while a redeploy runs). Both are
   # world-readable files written by root-side services; nothing privileged happens here.
   #   GET /api/log?tail=100   the last 100 lines (what a page loads first)
@@ -11,7 +11,7 @@ module Api
     MAX_TAIL = 500
 
     def show
-      path = Ampberry.path(:applog)
+      path = AirPlayOS.path(:applog)
       chunk = String.new
       size = 0
       from = params[:from].to_i.clamp(0, 2**40)
@@ -25,7 +25,7 @@ module Api
         end
       end
       render json: { "from" => from, "to" => from + chunk.bytesize, "size" => size,
-                     "chunk" => chunk.dup.force_encoding("UTF-8").scrub, "redeploy" => AmpberryBridge.redeploy_state }
+                     "chunk" => chunk.dup.force_encoding("UTF-8").scrub, "redeploy" => AirPlayOSBridge.redeploy_state }
     end
 
     private

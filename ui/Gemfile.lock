@@ -82,7 +82,7 @@ GEM
       actionpack (>= 7.0.0)
       activesupport (>= 7.0.0)
       rack
-    puma (6.6.1)
+    puma (7.2.1)
       nio4r (~> 2.0)
     racc (1.8.1)
     rack (3.2.7)
@@ -153,7 +153,7 @@ DEPENDENCIES
   importmap-rails (~> 2.1)
   phlex-rails (~> 2.4)
   propshaft (~> 1.1)
-  puma (~> 6.4)
+  puma (~> 7.2)
   railties (~> 7.2.3)
   ruby_ui (~> 1.6)
   stimulus-rails (~> 1.3)

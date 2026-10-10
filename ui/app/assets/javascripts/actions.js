@@ -34,7 +34,7 @@
   });
 
   function waitForReturn(out) {
-    out.textContent += "\n\nRebooting… this page reloads when Ampberry is back.";
+    out.textContent += "\n\nRebooting… this page reloads when AirPlay OS is back.";
     const started = Date.now();
     const timer = setInterval(async () => {
       if (Date.now() - started < 20000) return; // give it time to actually go down

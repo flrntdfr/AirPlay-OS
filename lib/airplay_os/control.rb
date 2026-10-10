@@ -4,21 +4,21 @@ require "json"
 require "socket"
 require "etc"
 
-module Ampberry
+module AirPlayOS
   # The control API between the unprivileged web UI and root.
   #
   # Server side: systemd socket activation (Accept=yes) hands one connection per invocation on
-  # STDIN/STDOUT (`ampberry control handle`, runs as root):
+  # STDIN/STDOUT (`airplay-os control handle`, runs as root):
   #   request:  one JSON object on a single line, e.g. {"action":"wifi-scan","params":{}}
   #   response: one JSON object, newline-terminated, then the connection closes
-  # Trust boundary: the socket is root:ampberry 0660 (systemd), the peer uid is checked again via
-  # SO_PEERCRED, requests are size- and time-limited, and only Ampberry::Actions' allow-list runs.
+  # Trust boundary: the socket is root:airplay-os 0660 (systemd), the peer uid is checked again via
+  # SO_PEERCRED, requests are size- and time-limited, and only AirPlayOS::Actions' allow-list runs.
   #
-  # Client side (Rails): Ampberry::Control::Client.new.call("wifi-scan")
+  # Client side (Rails): AirPlayOS::Control::Client.new.call("wifi-scan")
   module Control
     MAX_REQUEST = 64 * 1024
     READ_TIMEOUT = 10
-    ALLOWED_USERS = %w[root ampberry].freeze
+    ALLOWED_USERS = %w[root airplay-os].freeze
 
     class << self
       # uid of the connected peer, or nil when the handle is not a Unix socket.
@@ -58,7 +58,7 @@ module Ampberry
 
         line = begin
           read_request(input, read_timeout)
-        rescue Ampberry::Error => e
+        rescue AirPlayOS::Error => e
           return respond(output, { "ok" => false, "error" => e.message })
         end
         return respond(output, { "ok" => false, "error" => "empty request" }) if line.nil? || line.strip.empty?
@@ -87,10 +87,10 @@ module Ampberry
         deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + timeout
         loop do
           remaining = deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC)
-          raise Ampberry::Error, "timeout" if remaining <= 0
+          raise AirPlayOS::Error, "timeout" if remaining <= 0
 
           ready, = IO.select([input.to_io], nil, nil, remaining)
-          raise Ampberry::Error, "timeout" unless ready
+          raise AirPlayOS::Error, "timeout" unless ready
 
           begin
             buf << input.read_nonblock(4096)
@@ -99,7 +99,7 @@ module Ampberry
           rescue EOFError
             break
           end
-          raise Ampberry::Error, "request too large" if buf.bytesize > MAX_REQUEST
+          raise AirPlayOS::Error, "request too large" if buf.bytesize > MAX_REQUEST
           break if buf.include?("\n")
         end
         buf
@@ -107,7 +107,7 @@ module Ampberry
 
       # The request was answered — also when the answer is a refusal: that is the client's
       # error, not the handler's, so the transient unit exits 0 (a non-zero exit left every
-      # refused action behind as a "failed" ampberry-control@ instance).
+      # refused action behind as a "failed" airplay-os-control@ instance).
       def respond(output, data)
         output.write("#{JSON.generate(data)}\n")
         output.flush if output.respond_to?(:flush)
@@ -117,7 +117,7 @@ module Ampberry
 
     # Used by the web UI (unprivileged). Never loads the root-side modules.
     class Client
-      def initialize(socket_path: Ampberry.path(:control_socket), timeout: 130)
+      def initialize(socket_path: AirPlayOS.path(:control_socket), timeout: 130)
         @socket_path = socket_path
         @timeout = timeout
       end
@@ -127,10 +127,10 @@ module Ampberry
           sock.write("#{JSON.generate('action' => action, 'params' => params)}\n")
           sock.flush
           ready, = IO.select([sock], nil, nil, @timeout)
-          raise Ampberry::Error, "control: no answer within #{@timeout}s" unless ready
+          raise AirPlayOS::Error, "control: no answer within #{@timeout}s" unless ready
 
           line = sock.gets
-          raise Ampberry::Error, "control: connection closed without an answer" if line.nil?
+          raise AirPlayOS::Error, "control: connection closed without an answer" if line.nil?
 
           JSON.parse(line)
         end

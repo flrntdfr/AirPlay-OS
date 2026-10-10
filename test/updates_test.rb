@@ -2,17 +2,17 @@
 
 require_relative "test_helper"
 
-class UpdatesTest < AmpberryTest
-  U = Ampberry::Updates
+class UpdatesTest < AirPlayOSTest
+  U = AirPlayOS::Updates
 
   def setup
     U.http = nil
-    mkdirs("run/system-manager/sw/bin", "nix/store/abc-shairport-sync-5.5.2/bin", "run/ampberry")
+    mkdirs("run/system-manager/sw/bin", "nix/store/abc-shairport-sync-5.5.2/bin", "run/airplay-os")
     File.write(File.join(ROOT, "nix/store/abc-shairport-sync-5.5.2/bin/shairport-sync"), "")
     link = File.join(ROOT, "run/system-manager/sw/bin/shairport-sync")
     File.unlink(link) if File.symlink?(link)
     File.symlink(File.join(ROOT, "nix/store/abc-shairport-sync-5.5.2/bin/shairport-sync"), link)
-    File.unlink(Ampberry.path(:updates)) if File.exist?(Ampberry.path(:updates))
+    File.unlink(AirPlayOS.path(:updates)) if File.exist?(AirPlayOS.path(:updates))
   end
 
   def test_running_version_comes_from_the_store_path

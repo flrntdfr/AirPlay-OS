@@ -2,7 +2,7 @@
 # Copied to build/pi-gen/config by tools/build-image.sh, which appends the build-specific
 # lines (version, first user). Keep this file free of secrets.
 #
-# The image file is <date>-airplay-os-lite.img.xz (CI renames it to airplay-os-vN.img.xz);
+# The image file is <date>-airplay-os-lite.img.xz (CI renames it to airplay-os.img.xz);
 # the baked system is devices/ampberry.json (Wi‑Fi onboarding hotspot, http://ampberry.local/).
 IMG_NAME="airplay-os"
 RELEASE="trixie"
@@ -20,4 +20,4 @@ ENABLE_SSH=1
 ENABLE_CLOUD_INIT=1
 DEPLOY_COMPRESSION="xz"
 COMPRESSION_LEVEL=6
-STAGE_LIST="stage0 stage1 stage2 stage-ampberry"
+STAGE_LIST="stage0 stage1 stage2 stage-airplay-os"

@@ -3,18 +3,18 @@
 require "json"
 require "fileutils"
 
-module Ampberry
+module AirPlayOS
   # Long-running reader of the shairport-sync metadata pipe. Publishes the now-playing state for
   # the web UI as plain files, so the UI needs no pipe handling at all:
-  #   /run/ampberry/now-playing.json   JSON snapshot (atomically replaced on every change)
-  #   /run/ampberry/cover-<sha1>.<ext> current cover art, referenced from the JSON
+  #   /run/airplay-os/now-playing.json   JSON snapshot (atomically replaced on every change)
+  #   /run/airplay-os/cover-<sha1>.<ext> current cover art, referenced from the JSON
   # Exactly one reader may consume a FIFO; this daemon is it. The pipe is reopened whenever the
   # writer (shairport-sync) restarts.
   class MetadataDaemon
     POLL_INTERVAL = 0.25
     HEARTBEAT = 5
 
-    def initialize(pipe: Ampberry.path(:metadata_pipe), run_dir: Ampberry.path(:run_dir))
+    def initialize(pipe: AirPlayOS.path(:metadata_pipe), run_dir: AirPlayOS.path(:run_dir))
       @pipe = pipe
       @run_dir = run_dir
       @parser = Metadata.new

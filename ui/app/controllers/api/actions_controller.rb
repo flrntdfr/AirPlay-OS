@@ -6,13 +6,13 @@ module Api
   # schema of the action; custom (config-file) actions accept none.
   class ActionsController < ActionController::API
     def index
-      render json: { "actions" => AmpberryBridge.actions }
+      render json: { "actions" => AirPlayOSBridge.actions }
     end
 
     def create
       params_hash = request.request_parameters.fetch("params", {})
       params_hash = params_hash.to_unsafe_h if params_hash.respond_to?(:to_unsafe_h)
-      res = AmpberryBridge.call(params[:id], params_hash)
+      res = AirPlayOSBridge.call(params[:id], params_hash)
       render json: res, status: res["ok"] ? :ok : :unprocessable_entity
     end
   end

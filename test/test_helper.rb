@@ -8,12 +8,12 @@ require "tmpdir"
 require "fileutils"
 require "json"
 
-ROOT = Dir.mktmpdir("ampberry-test-")
-ENV["AMPBERRY_ROOT"] = ROOT
+ROOT = Dir.mktmpdir("airplay-os-test-")
+ENV["AIRPLAY_OS_ROOT"] = ROOT
 Minitest.after_run { FileUtils.remove_entry(ROOT) }
 
 $LOAD_PATH.unshift(File.expand_path("../lib", __dir__))
-require "ampberry"
+require "airplay_os"
 
 module TestHelpers
   FIXTURES = File.expand_path("fixtures", __dir__)
@@ -35,8 +35,8 @@ module TestHelpers
   }.freeze
 
   def install_defaults(extra = {})
-    mkdirs("etc/ampberry", "var/lib/ampberry", "var/log/ampberry", "run/shairport-sync", "etc")
-    Ampberry::Config.save_json_atomic(Ampberry.path(:defaults), DEFAULTS.merge(extra))
+    mkdirs("etc/airplay-os", "var/lib/airplay-os", "var/log/airplay-os", "run/shairport-sync", "etc")
+    AirPlayOS::Config.save_json_atomic(AirPlayOS.path(:defaults), DEFAULTS.merge(extra))
   end
 
   # Run the block with every command intercepted. +handler+ is a lambda (cmd Array, opts Hash) →
@@ -44,13 +44,13 @@ module TestHelpers
   # @cmds (joined argv strings).
   def with_runner(handler = nil)
     @cmds = []
-    Ampberry::Run.runner = lambda do |cmd, opts|
+    AirPlayOS::Run.runner = lambda do |cmd, opts|
       @cmds << cmd.join(" ")
       (handler ? handler.call(cmd, opts) : device_mock(cmd, opts)) || { status: 0, out: "", err: "" }
     end
     yield
   ensure
-    Ampberry::Run.runner = nil
+    AirPlayOS::Run.runner = nil
   end
 
   def cmds = @cmds
@@ -72,6 +72,6 @@ module TestHelpers
   end
 end
 
-class AmpberryTest < Minitest::Test
+class AirPlayOSTest < Minitest::Test
   include TestHelpers
 end

@@ -1,4 +1,4 @@
-# Ampberry v2 (HiFiBerry Amp2, Bluetooth off) — kept in sync with Ampberry::System::CONFIG_TXT_LINES
+# AirPlay OS v2 (HiFiBerry Amp2, Bluetooth off) — kept in sync with AirPlayOS::System::CONFIG_TXT_LINES
 dtparam=audio=off
 dtoverlay=hifiberry-dacplus-std
 dtparam=i2c_arm=on

@@ -5,23 +5,23 @@ require "fileutils"
 require "securerandom"
 require "tempfile"
 
-module Ampberry
+module AirPlayOS
   # Host-level idempotent steps the flake cannot express: boot config, users/dirs, dpkg-owned
   # config files (avahi), hostname, HiFiBerry OS leftovers, and the "clean reboot".
   module System
-    UI_USER = "ampberry"
+    UI_USER = "airplay-os"
     AUDIO_USER = "shairport-sync"
     LEFTOVER_PATTERNS = %w[hifiberry-* hbos-* pipewire* wireplumber rpi-connect-lite pipewire-api ladspa-speakereq ladspa-riaa].freeze
 
     class << self
       def root? = Process.uid.zero?
-      def dry? = Ampberry::Run.dry_run ? true : false
+      def dry? = AirPlayOS::Run.dry_run ? true : false
 
       def mark_need_reboot
-        FileUtils.touch(Ampberry.path(:need_reboot)) unless dry?
+        FileUtils.touch(AirPlayOS.path(:need_reboot)) unless dry?
       end
 
-      def needs_reboot? = File.exist?(Ampberry.path(:need_reboot))
+      def needs_reboot? = File.exist?(AirPlayOS.path(:need_reboot))
 
       # ---- /boot/firmware/config.txt -------------------------------------------------------
 
@@ -30,7 +30,7 @@ module Ampberry
       # /boot/firmware/config.txt lines for this device (devices/<id>.json): onboard audio off,
       # the HAT overlay (none when the HAT's EEPROM is left to announce it), I2C for the DAC,
       # and each radio the device does not use switched off at the device-tree level.
-      def config_txt_lines(device = Ampberry.device)
+      def config_txt_lines(device = AirPlayOS.device)
         lines = ["dtparam=audio=off"]
         lines << "dtoverlay=#{device['overlay']}" if device["overlay"].is_a?(String) && !device["overlay"].empty?
         lines << "dtparam=i2c_arm=on"
@@ -39,7 +39,7 @@ module Ampberry
         lines
       end
 
-      def ensure_config_txt(path: Ampberry.path(:config_txt), lines: config_txt_lines)
+      def ensure_config_txt(path: AirPlayOS.path(:config_txt), lines: config_txt_lines)
         content = File.read(path).lines.map(&:chomp)
         have = content.reject { |l| l.match?(/\A\s*#/) }.map(&:strip)
         missing = lines - have
@@ -47,7 +47,7 @@ module Ampberry
         content.map! do |l|
           if l.match?(/\A\s*dtparam=audio=on\s*\z/)
             changed = true
-            "##{l}   # disabled by ampberry: the HiFiBerry HAT is the audio device"
+            "##{l}   # disabled by airplay-os: the HiFiBerry HAT is the audio device"
           else
             l
           end
@@ -56,7 +56,7 @@ module Ampberry
           last_section = content.reverse.find { |l| l.match?(/\A\s*\[/) }
           content << "" if content.any? && content.last != ""
           content << "[all]" if last_section && !last_section.match?(/\A\s*\[all\]\s*\z/)
-          content << "# Ampberry v2 (HiFiBerry Amp2, Bluetooth off)"
+          content << "# AirPlay OS v2 (HiFiBerry Amp2, Bluetooth off)"
           content.concat(missing)
           changed = true
         end
@@ -74,13 +74,13 @@ module Ampberry
 
       def ensure_user_and_dirs
         ensure_system_user(AUDIO_USER, "Shairport Sync", groups: "audio")
-        ensure_system_user(UI_USER, "Ampberry web UI")
+        ensure_system_user(UI_USER, "AirPlay OS web UI")
         gid = begin
           Etc.getgrnam(UI_USER).gid
         rescue ArgumentError
           nil
         end
-        [[Ampberry.path(:etc), 0o755, false], [Ampberry.path(:state), 0o750, true], [Ampberry.path(:log), 0o755, false]].each do |dir, mode, group_owned|
+        [[AirPlayOS.path(:etc), 0o755, false], [AirPlayOS.path(:state), 0o750, true], [AirPlayOS.path(:log), 0o755, false]].each do |dir, mode, group_owned|
           next if dry?
 
           FileUtils.mkdir_p(dir)
@@ -100,9 +100,9 @@ module Ampberry
         true
       end
 
-      # Rails needs a stable SECRET_KEY_BASE; generated once, readable by the ampberry group only.
+      # Rails needs a stable SECRET_KEY_BASE; generated once, readable by the airplay-os group only.
       def ensure_ui_secret
-        path = Ampberry.path(:ui_secret)
+        path = AirPlayOS.path(:ui_secret)
         return false if File.exist?(path) && File.size(path) >= 64
 
         write_atomic(path, "#{SecureRandom.hex(64)}\n", mode: 0o640) unless dry?
@@ -118,7 +118,7 @@ module Ampberry
       # ---- avahi: IPv4 only ------------------------------------------------------------------
 
       # Clients must never learn an AAAA record for the player (IPv6 stays firewalled).
-      def ensure_avahi_ipv4(path: Ampberry.path(:avahi_conf), restart: true)
+      def ensure_avahi_ipv4(path: AirPlayOS.path(:avahi_conf), restart: true)
         return { "changed" => false, "skipped" => "no avahi-daemon.conf" } unless File.exist?(path)
 
         want = { "server" => { "use-ipv6" => "no" },
@@ -174,7 +174,7 @@ module Ampberry
 
       # ---- sshd: key-only access, validated before reload ----------------------------------------
 
-      # The flake ships /etc/ssh/sshd_config.d/10-ampberry.conf; this validates the merged config and
+      # The flake ships /etc/ssh/sshd_config.d/10-airplay-os.conf; this validates the merged config and
       # reloads sshd so the hardening is live without a reboot. Never reloads an invalid config.
       def ensure_sshd
         Run.run("sshd", "-t", timeout: 30)
@@ -184,7 +184,7 @@ module Ampberry
 
       # ---- hostname ----------------------------------------------------------------------------
 
-      def ensure_pretty_hostname(pretty: Ampberry.device["pretty_name"])
+      def ensure_pretty_hostname(pretty: AirPlayOS.device["pretty_name"])
         cur = Run.try_run("hostnamectl", "hostname", "--pretty", quiet: true, read_only: true)
         have = cur.status.zero? ? cur.out.strip : ""
         return false if have == pretty
@@ -206,7 +206,7 @@ module Ampberry
           Run.run("apt-get", "-y", "purge", *purge, timeout: 1800, env: { "DEBIAN_FRONTEND" => "noninteractive" })
           summary["purged"] = purge
         end
-        [Ampberry.path(:hifiberry_list), Ampberry.path(:hifiberry_key)].each do |f|
+        [AirPlayOS.path(:hifiberry_list), AirPlayOS.path(:hifiberry_key)].each do |f|
           next unless File.exist?(f)
 
           Log.info("removing #{f}")
@@ -222,8 +222,8 @@ module Ampberry
           summary["linger_disabled"] = true
         end
 
-        home = Ampberry.path(:pi_home)
-        residue = [Ampberry.path(:hifiberry_user),
+        home = AirPlayOS.path(:pi_home)
+        residue = [AirPlayOS.path(:hifiberry_user),
                    "#{home}/.config/systemd/user/default.target.wants/shairport.service",
                    "#{home}/.config/systemd/user/mpris-proxy.service",
                    *%w[.shairport .raat .squeezelite .state etc].map { |d| "#{home}/#{d}" }]
@@ -242,11 +242,11 @@ module Ampberry
       # ---- clean reboot: re-run cloud-init from scratch on the next boot -----------------------
 
       def clean_reboot(reset_settings: false, no_reboot: false)
-        raise Ampberry::Error, "clean-reboot must run as root" unless root? || Ampberry::Run.runner || dry?
+        raise AirPlayOS::Error, "clean-reboot must run as root" unless root? || AirPlayOS::Run.runner || dry?
 
-        if reset_settings && File.exist?(Ampberry.path(:settings))
+        if reset_settings && File.exist?(AirPlayOS.path(:settings))
           Log.info("resetting user settings to defaults")
-          File.unlink(Ampberry.path(:settings)) unless dry?
+          File.unlink(AirPlayOS.path(:settings)) unless dry?
         end
         Log.info("cloud-init clean --logs; rebooting to re-provision")
         Run.run("cloud-init", "clean", "--logs", timeout: 120)

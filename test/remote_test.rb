@@ -2,8 +2,8 @@
 
 require_relative "test_helper"
 
-class RemoteTest < AmpberryTest
-  R = Ampberry::Remote
+class RemoteTest < AirPlayOSTest
+  R = AirPlayOS::Remote
 
   BROWSE = <<~OUT
     +;wlan0;IPv6;iTunes_Ctrl_8F2C1A3B9D4E6F70;_dacp._tcp;local
@@ -32,18 +32,18 @@ class RemoteTest < AmpberryTest
   def test_errors_are_explicit
     R.http = ->(_u, _h) { [403, ""] }
     with_runner(->(_c, _o) { { status: 0, out: BROWSE } }) do
-      assert_raises(Ampberry::Error) { R.command("playpause", now(active: false)) }
-      assert_raises(Ampberry::Error) { R.command("playpause", now.merge("active_remote" => "")) }
-      assert_raises(Ampberry::Error) { R.command("volumeup", now) }
-      assert_raises(Ampberry::Error) { R.command("playpause", now.merge("dacp_id" => "deadbeef")) } # not advertised
-      e = assert_raises(Ampberry::Error) { R.command("playpause", now) }
+      assert_raises(AirPlayOS::Error) { R.command("playpause", now(active: false)) }
+      assert_raises(AirPlayOS::Error) { R.command("playpause", now.merge("active_remote" => "")) }
+      assert_raises(AirPlayOS::Error) { R.command("volumeup", now) }
+      assert_raises(AirPlayOS::Error) { R.command("playpause", now.merge("dacp_id" => "deadbeef")) } # not advertised
+      e = assert_raises(AirPlayOS::Error) { R.command("playpause", now) }
       assert_match(/HTTP 403/, e.message)
     end
   end
 
   def test_metadata_carries_the_remote_fields
-    m = Ampberry::Metadata.new
-    m.feed(Ampberry::Metadata.encode_item("ssnc", "daid", "8F2C1A3B9D4E6F70") + Ampberry::Metadata.encode_item("ssnc", "acre", "1234567890\n")).each { |i| m.apply(i) }
+    m = AirPlayOS::Metadata.new
+    m.feed(AirPlayOS::Metadata.encode_item("ssnc", "daid", "8F2C1A3B9D4E6F70") + AirPlayOS::Metadata.encode_item("ssnc", "acre", "1234567890\n")).each { |i| m.apply(i) }
     assert_equal "8F2C1A3B9D4E6F70", m.snapshot["dacp_id"]
     assert_equal "1234567890", m.snapshot["active_remote"]
   end

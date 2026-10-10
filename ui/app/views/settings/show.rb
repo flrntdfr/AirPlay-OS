@@ -194,8 +194,8 @@ class Views::Settings::Show < Views::Base
   end
 
   def network_row(s)
-    word = Ampberry::Network.describe(s)
-    locked = s["enabled"] && !Ampberry::Network.may_disable?(@network, s["iface"])
+    word = AirPlayOS::Network.describe(s)
+    locked = s["enabled"] && !AirPlayOS::Network.may_disable?(@network, s["iface"])
     div(class: "flex items-center justify-between gap-4") do
       div(class: "min-w-0") do
         div(class: "flex items-center gap-2") do
@@ -285,7 +285,7 @@ class Views::Settings::Show < Views::Base
 
   # What is running: the version (v + build number = the commit count, which is what the vN tags
   # are cut from; "dev" for a dirty tree) over the flake source in the Nix store
-  # (/opt/ampberry → /nix/store/…-source).
+  # (/opt/airplay-os → /nix/store/…-source).
   def stats
     div(class: "font-mono text-xs [overflow-wrap:anywhere]") do
       p(class: "font-semibold") { @flake["build"].present? && @flake["build"] != "dev" ? "v#{@flake["build"]}" : "dev" }

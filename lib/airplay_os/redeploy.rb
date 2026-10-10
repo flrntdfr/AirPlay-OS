@@ -4,23 +4,23 @@ require "json"
 require "time"
 require "fileutils"
 
-module Ampberry
-  # "Redeploy": re-apply the whole stack from the flake shipped at /opt/ampberry, in the background.
+module AirPlayOS
+  # "Redeploy": re-apply the whole stack from the flake shipped at /opt/airplay-os, in the background.
   #   start  → (root, via the control API or CLI) launches a transient systemd unit running `run`
-  #   run    → (inside that unit) system-manager switch --flake /opt/ampberry#ampberry, record the
-  #            new system path for Clean reboot, then `ampberry provision`; every line of output goes
-  #            to /var/log/ampberry/redeploy.log (world-readable) which the web UI streams as its backdrop
+  #   run    → (inside that unit) system-manager switch --flake /opt/airplay-os#airplay-os, record the
+  #            new system path for Clean reboot, then `airplay-os provision`; every line of output goes
+  #            to /var/log/airplay-os/redeploy.log (world-readable) which the web UI streams as its backdrop
   #   status → state file + whether the unit is active
   # One job at a time: the unit name is fixed, so systemd refuses a second start.
   #
   # The same job in "update" mode (`update: { "version", "tag" }`, the UI's Update button) puts a
   # newer shairport-sync release on top of the shipped flake: it writes a tiny flake under
-  # /var/lib/ampberry/shairport-update that takes /opt/ampberry as an input and calls its
+  # /var/lib/airplay-os/shairport-update that takes /opt/airplay-os as an input and calls its
   # lib.withShairport with the release tarball, locks it, switches from it, then refreshes the
-  # update cache (ampberry-updates.service) so the UI sees the new running version. A later
-  # Redeploy (from /opt/ampberry) returns to the pinned version; the permanent fix is a flake bump.
+  # update cache (airplay-os-updates.service) so the UI sees the new running version. A later
+  # Redeploy (from /opt/airplay-os) returns to the pinned version; the permanent fix is a flake bump.
   module Redeploy
-    UNIT = "ampberry-redeploy"
+    UNIT = "airplay-os-redeploy"
     SYSTEM_MANAGER_FLAKE = "github:numtide/system-manager/release-26.05"
     # The CLI ships inside the system closure (environment.systemPackages).
     SW_SYSTEM_MANAGER = "/run/system-manager/sw/bin/system-manager"
@@ -32,8 +32,8 @@ module Ampberry
     TIMEOUT = 2 * 60 * 60
 
     class << self
-      def log_path = Ampberry.path(:redeploy_log)
-      def state_path = Ampberry.path(:redeploy_state)
+      def log_path = AirPlayOS.path(:redeploy_log)
+      def state_path = AirPlayOS.path(:redeploy_state)
 
       def status
         st = File.exist?(state_path) ? (Config.load_json(state_path) rescue { "state" => "unknown" }) : { "state" => "idle" }
@@ -46,25 +46,25 @@ module Ampberry
       end
 
       # Launch the background job. Returns the status hash; raises if one is already running.
-      def start(reason: "cli", ampberry_bin: "/run/system-manager/sw/bin/ampberry", update: nil)
+      def start(reason: "cli", airplay_os_bin: "/run/system-manager/sw/bin/airplay-os", update: nil)
         update = check_update(update) if update
-        raise Ampberry::Error, "a redeploy is already running" if status["unit_active"]
+        raise AirPlayOS::Error, "a redeploy is already running" if status["unit_active"]
 
         FileUtils.mkdir_p(File.dirname(log_path))
         File.write(log_path, "") unless Run.dry_run
         File.chmod(0o644, log_path) if File.exist?(log_path)
         write_state("state" => "starting", "kind" => kind_of(update), "started_at" => Time.now.utc.iso8601, "reason" => reason)
         Run.run("systemd-run", "--unit", UNIT,
-                "--description", (update ? "Ampberry shairport-sync update (#{update['version']})" : "Ampberry redeploy (flake + provision)"),
+                "--description", (update ? "AirPlay OS shairport-sync update (#{update['version']})" : "AirPlay OS redeploy (flake + provision)"),
                 "--collect", "--property", "Type=exec", "--same-dir", "--quiet",
-                *Ampberry.root.empty? ? [] : ["--setenv", "AMPBERRY_ROOT=#{Ampberry.root}"],
-                ampberry_bin, "redeploy", "run", *(update ? ["--update-shairport", update["version"], update["tag"]] : []),
+                *AirPlayOS.root.empty? ? [] : ["--setenv", "AIRPLAY_OS_ROOT=#{AirPlayOS.root}"],
+                airplay_os_bin, "redeploy", "run", *(update ? ["--update-shairport", update["version"], update["tag"]] : []),
                 timeout: 30)
         status
       end
 
       # The job. Returns true on success. Output is appended live to the log file.
-      def run(flake: Ampberry.path(:flake), system_manager: nil, provision_cmd: nil, update: nil, nix: nil)
+      def run(flake: AirPlayOS.path(:flake), system_manager: nil, provision_cmd: nil, update: nil, nix: nil)
         update = check_update(update) if update
         kind = kind_of(update)
         FileUtils.mkdir_p(File.dirname(log_path))
@@ -74,15 +74,15 @@ module Ampberry
         started = Time.now
         write_state("state" => "running", "kind" => kind, "started_at" => started.utc.iso8601, "pid" => Process.pid, "flake" => flake)
         begin
-          attr = Ampberry.device["id"] # systemConfigs.<id> of the flake
+          attr = AirPlayOS.device["id"] # systemConfigs.<id> of the flake
           if update
-            say(log, "== ampberry shairport-sync update → #{update['version']} (on top of #{flake})")
+            say(log, "== airplay-os shairport-sync update → #{update['version']} (on top of #{flake})")
             dir = write_update_flake(flake, update)
             # fetches the release tarball; everything else is pinned by the shipped flake's lock
             stream(log, nix || find_nix, "flake", "lock", dir)
             ref = "#{dir}##{attr}"
           else
-            say(log, "== ampberry redeploy #{Ampberry::VERSION} - flake #{flake}")
+            say(log, "== airplay-os redeploy #{AirPlayOS::VERSION} - flake #{flake}")
             ref = "#{flake}##{attr}"
           end
           sm = system_manager || find_system_manager(log)
@@ -108,41 +108,41 @@ module Ampberry
 
       def check_update(update)
         u = { "version" => update["version"].to_s, "tag" => (update["tag"] || update["version"]).to_s }
-        u.each { |k, v| raise Ampberry::Error, "update-shairport: bad #{k} '#{v}'" unless v.match?(RELEASE_RE) }
+        u.each { |k, v| raise AirPlayOS::Error, "update-shairport: bad #{k} '#{v}'" unless v.match?(RELEASE_RE) }
         u
       end
 
-      # After a redeploy: provision. After an update: refresh the update cache (as the ampberry
+      # After a redeploy: provision. After an update: refresh the update cache (as the airplay-os
       # user, through its own unit) so the UI's badge turns green.
       def default_follow_up(update)
-        update ? ["systemctl", "start", "ampberry-updates.service"] : ["/run/system-manager/sw/bin/ampberry", "provision"]
+        update ? ["systemctl", "start", "airplay-os-updates.service"] : ["/run/system-manager/sw/bin/airplay-os", "provision"]
       end
 
-      # /var/lib/ampberry/shairport-update/flake.nix: the shipped flake (a path: input to its store
+      # /var/lib/airplay-os/shairport-update/flake.nix: the shipped flake (a path: input to its store
       # copy — the store path itself, or ?dir= when the flake lives in a subdirectory of it) +
       # the upstream release, through lib.withShairport.
       def write_update_flake(flake, update)
         src = File.realpath(flake) # /nix/store/…-source or /nix/store/…-source/<subdir>
         input = File.basename(File.dirname(src)) == "store" ? "path:#{src}" : "path:#{File.dirname(src)}?dir=#{File.basename(src)}"
         rel = release_info
-        dir = Ampberry.path(:update_flake)
+        dir = AirPlayOS.path(:update_flake)
         FileUtils.mkdir_p(dir)
         File.write(File.join(dir, "flake.nix"), <<~NIX)
-          # Written by `ampberry redeploy run --update-shairport`. The shipped flake with a newer
-          # shairport-sync release on top; Redeploy (from /opt/ampberry) returns to the pinned one.
+          # Written by `airplay-os redeploy run --update-shairport`. The shipped flake with a newer
+          # shairport-sync release on top; Redeploy (from /opt/airplay-os) returns to the pinned one.
           {
-            description = "#{Ampberry.device['pretty_name']} with shairport-sync #{update['version']}";
-            inputs.ampberry.url = "#{input}";
+            description = "#{AirPlayOS.device['pretty_name']} with shairport-sync #{update['version']}";
+            inputs.airplay-os.url = "#{input}";
             inputs.shairport-src = {
               url = "github:#{UPSTREAM}/#{update['tag']}";
               flake = false;
             };
             outputs =
-              { ampberry, shairport-src, ... }:
-              ampberry.lib.withShairport {
+              { airplay-os, shairport-src, ... }:
+              airplay-os.lib.withShairport {
                 src = shairport-src;
                 version = "#{update['version']}";
-                device = "#{Ampberry.device['id']}";
+                device = "#{AirPlayOS.device['id']}";
                 build = "#{rel['BUILD']}";
                 flakeVersion = "#{rel['FLAKE_VERSION']}";
               };
@@ -153,11 +153,11 @@ module Ampberry
         dir
       end
 
-      # BUILD / FLAKE_VERSION of the running system (/etc/ampberry/release), passed through to the
+      # BUILD / FLAKE_VERSION of the running system (/etc/airplay-os/release), passed through to the
       # update flake so the device keeps reporting its real build number.
       def release_info
         info = { "BUILD" => "dev", "FLAKE_VERSION" => "unknown" }
-        File.foreach(Ampberry.path(:release)) do |line|
+        File.foreach(AirPlayOS.path(:release)) do |line|
           k, v = line.chomp.split("=", 2)
           next unless k && v
 
@@ -170,7 +170,7 @@ module Ampberry
       end
 
       def find_nix
-        live = File.join(Ampberry.root, NIX)
+        live = File.join(AirPlayOS.root, NIX)
         File.executable?(live) ? live : "nix"
       end
 
@@ -187,7 +187,7 @@ module Ampberry
           r = Run.runner.call(cmd, {})
           log.print(r[:out].to_s)
           log.print(r[:err].to_s)
-          raise Ampberry::Error, "#{cmd.first} exited #{r[:status]}" unless (r[:status] || 0).zero?
+          raise AirPlayOS::Error, "#{cmd.first} exited #{r[:status]}" unless (r[:status] || 0).zero?
 
           return true
         end
@@ -226,20 +226,20 @@ module Ampberry
             sleep 2
             Process.kill("KILL", pid) rescue nil
             Process.wait(pid) rescue nil
-            raise Ampberry::Error, "#{cmd.first} timed out after #{TIMEOUT}s"
+            raise AirPlayOS::Error, "#{cmd.first} timed out after #{TIMEOUT}s"
           end
         end
         reader.close unless reader.closed?
-        raise Ampberry::Error, "#{File.basename(cmd.first)} exited #{status.exitstatus || status.inspect}" unless status.success?
+        raise AirPlayOS::Error, "#{File.basename(cmd.first)} exited #{status.exitstatus || status.inspect}" unless status.success?
 
         true
       end
 
       def find_system_manager(log)
-        live = File.join(Ampberry.root, SW_SYSTEM_MANAGER)
+        live = File.join(AirPlayOS.root, SW_SYSTEM_MANAGER)
         return File.realpath(live).delete_suffix("/bin/system-manager") if File.executable?(live)
 
-        recorded = Ampberry.path(:system_manager_path)
+        recorded = AirPlayOS.path(:system_manager_path)
         if File.exist?(recorded)
           path = File.read(recorded).strip
           return path if File.executable?("#{path}/bin/system-manager")
@@ -252,12 +252,12 @@ module Ampberry
 
       # Clean reboot activates the recorded closure: keep it pointing at what is live now.
       def record_system_path(log, system_manager)
-        File.write(Ampberry.path(:system_manager_path), "#{system_manager}\n")
-        profile = PROFILES.map { |p| File.join(Ampberry.root, p) }.find { |p| File.symlink?(p) || File.exist?(p) }
+        File.write(AirPlayOS.path(:system_manager_path), "#{system_manager}\n")
+        profile = PROFILES.map { |p| File.join(AirPlayOS.root, p) }.find { |p| File.symlink?(p) || File.exist?(p) }
         return unless profile
 
         target = File.realpath(profile)
-        File.write(Ampberry.path(:system_path), "#{target}\n")
+        File.write(AirPlayOS.path(:system_path), "#{target}\n")
         say(log, "system closure: #{target}")
       rescue SystemCallError => e
         say(log, "could not record the system path: #{e.message}")

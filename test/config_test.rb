@@ -2,17 +2,17 @@
 
 require_relative "test_helper"
 
-class ConfigTest < AmpberryTest
-  C = Ampberry::Config
+class ConfigTest < AirPlayOSTest
+  C = AirPlayOS::Config
 
   def setup
     install_defaults
-    File.unlink(Ampberry.path(:settings)) if File.exist?(Ampberry.path(:settings))
+    File.unlink(AirPlayOS.path(:settings)) if File.exist?(AirPlayOS.path(:settings))
   end
 
   def test_paths_are_relocated
-    assert_equal "#{ROOT}/etc/ampberry/defaults.json", Ampberry.path(:defaults)
-    assert_raises(ArgumentError) { Ampberry.path(:nope) }
+    assert_equal "#{ROOT}/etc/airplay-os/defaults.json", AirPlayOS.path(:defaults)
+    assert_raises(ArgumentError) { AirPlayOS.path(:nope) }
   end
 
   def test_merge_deep
@@ -23,10 +23,10 @@ class ConfigTest < AmpberryTest
 
   def test_json_round_trip_is_atomic
     assert_equal DEFAULTS, C.load_defaults
-    assert_empty Dir.glob("#{ROOT}/etc/ampberry/.*.tmp"), "no temp files left"
-    assert_equal "644", format("%o", File.stat(Ampberry.path(:defaults)).mode & 0o777)
-    spit("#{ROOT}/etc/ampberry/bad.json", '{"a":')
-    e = assert_raises(Ampberry::Error) { C.load_json("#{ROOT}/etc/ampberry/bad.json") }
+    assert_empty Dir.glob("#{ROOT}/etc/airplay-os/.*.tmp"), "no temp files left"
+    assert_equal "644", format("%o", File.stat(AirPlayOS.path(:defaults)).mode & 0o777)
+    spit("#{ROOT}/etc/airplay-os/bad.json", '{"a":')
+    e = assert_raises(AirPlayOS::Error) { C.load_json("#{ROOT}/etc/airplay-os/bad.json") }
     assert_match(/invalid JSON/, e.message)
   end
 
@@ -68,8 +68,8 @@ class ConfigTest < AmpberryTest
   end
 
   def test_logger_writes_to_relocated_dir
-    Ampberry::Log.init("t-config")
-    Ampberry::Log.info("hello log")
-    assert_match(/\[INFO\] t-config: hello log/, slurp("#{ROOT}/var/log/ampberry/t-config.log"))
+    AirPlayOS::Log.init("t-config")
+    AirPlayOS::Log.info("hello log")
+    assert_match(/\[INFO\] t-config: hello log/, slurp("#{ROOT}/var/log/airplay-os/t-config.log"))
   end
 end

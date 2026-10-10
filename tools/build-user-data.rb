@@ -4,7 +4,7 @@
 # Render the cloud-init seed (user-data, network-config, meta-data) for one device from
 # cloud-init/*.tmpl, devices/<id>.json and secrets.env into an output directory (default: build/).
 # Run via tools/build-image.sh / tools/apply-live.sh or:
-#   nix shell nixpkgs#ruby_3_4 --command ruby tools/build-user-data.rb --device ampberry --out build
+#   nix shell nixpkgs#ruby_3_4 --command ruby tools/build-user-data.rb --device airplay-os --out build
 #
 # secrets.env is a KEY="value" file (shell style). Required: SSH_AUTHORIZED_KEYS (one key per
 # line inside the quotes); for a Wi‑Fi device also WIFI_SSID, WIFI_PSK, SETUP_PSK (the onboarding
@@ -29,7 +29,7 @@ OptionParser.new do |o|
 end.parse!
 
 abort "secrets file not found: #{opts[:secrets]} (copy secrets.env.example)" unless File.exist?(opts[:secrets])
-device_file = File.join(root, "devices", "#{opts[:device]}.json")
+device_file = File.join(root, "docs", "devices", "#{opts[:device]}.json")
 abort "unknown device #{opts[:device]} (no #{device_file})" unless File.exist?(device_file)
 device = JSON.parse(File.read(device_file))
 wifi = device["wifi"] ? true : false
@@ -56,7 +56,7 @@ if wifi
   abort "WIFI_PSK must be an 8..63 character passphrase or a 64-digit hex PSK" unless secrets["WIFI_PSK"].length.between?(8, 63) || secrets["WIFI_PSK"].match?(/\A\h{64}\z/)
 end
 
-def yaml_q(s) = %("#{s.gsub('\\', '\\\\\\\\').gsub('"', '\\"')}")
+def yaml_q(s) = %("#{s.gsub(/[\\"]/) { "\\#{$&}" }}")
 
 keys = secrets["SSH_AUTHORIZED_KEYS"].lines.map(&:strip).reject(&:empty?)
 abort "SSH_AUTHORIZED_KEYS has no keys" if keys.empty?

@@ -4,12 +4,12 @@ require "json"
 require "tempfile"
 require "etc"
 
-module Ampberry
-  # Settings model:  /etc/ampberry/defaults.json  (shipped by the Nix flake)
-  #                ⊕ /var/lib/ampberry/settings.json (only the keys the user changed; survives re-provisioning)
+module AirPlayOS
+  # Settings model:  /etc/airplay-os/defaults.json  (shipped by the Nix flake)
+  #                ⊕ /var/lib/airplay-os/settings.json (only the keys the user changed; survives re-provisioning)
   #                = effective settings used to render /etc/shairport-sync.conf.
   module Config
-    class InvalidSettings < Ampberry::Error
+    class InvalidSettings < AirPlayOS::Error
       attr_reader :problems
 
       def initialize(problems)
@@ -35,19 +35,19 @@ module Ampberry
 
       def load_json(path)
         data = JSON.parse(File.binread(path))
-        raise Ampberry::Error, "#{path}: top level must be a JSON object" unless data.is_a?(Hash)
+        raise AirPlayOS::Error, "#{path}: top level must be a JSON object" unless data.is_a?(Hash)
 
         data
       rescue JSON::ParserError => e
-        raise Ampberry::Error, "invalid JSON in #{path}: #{e.message.lines.first&.strip}"
+        raise AirPlayOS::Error, "invalid JSON in #{path}: #{e.message.lines.first&.strip}"
       rescue Errno::ENOENT, Errno::EACCES => e
-        raise Ampberry::Error, "cannot read #{path}: #{e.message}"
+        raise AirPlayOS::Error, "cannot read #{path}: #{e.message}"
       end
 
       # Atomic write: temp file in the same directory, chmod/chown, rename.
       def save_json_atomic(path, data, mode: 0o644, owner: nil)
         dir = File.dirname(path)
-        raise Ampberry::Error, "directory #{dir} does not exist" unless File.directory?(dir)
+        raise AirPlayOS::Error, "directory #{dir} does not exist" unless File.directory?(dir)
 
         tmp = Tempfile.create([".#{File.basename(path)}.", ".tmp"], dir)
         begin
@@ -82,10 +82,10 @@ module Ampberry
         SCHEMA.transform_values(&:dup)
       end
 
-      def load_defaults = load_json(Ampberry.path(:defaults))
+      def load_defaults = load_json(AirPlayOS.path(:defaults))
 
       def load_settings
-        path = Ampberry.path(:settings)
+        path = AirPlayOS.path(:settings)
         File.exist?(path) ? load_json(path) : {}
       end
 
@@ -130,7 +130,7 @@ module Ampberry
 
         defaults ||= load_defaults
         store = settings.sort.to_h.reject { |k, v| same?(v, defaults[k]) }
-        save_json_atomic(Ampberry.path(:settings), store, mode: mode, owner: owner)
+        save_json_atomic(AirPlayOS.path(:settings), store, mode: mode, owner: owner)
       end
 
       private

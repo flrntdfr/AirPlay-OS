@@ -5,17 +5,17 @@ require "stringio"
 require "socket"
 require "etc"
 
-class ControlTest < AmpberryTest
-  A = Ampberry::Actions
-  C = Ampberry::Control
+class ControlTest < AirPlayOSTest
+  A = AirPlayOS::Actions
+  C = AirPlayOS::Control
 
   def setup
     install_defaults
-    File.unlink(Ampberry.path(:settings)) if File.exist?(Ampberry.path(:settings))
+    File.unlink(AirPlayOS.path(:settings)) if File.exist?(AirPlayOS.path(:settings))
     actions_cfg([])
   end
 
-  def actions_cfg(list) = Ampberry::Config.save_json_atomic(Ampberry.path(:actions), { "actions" => list })
+  def actions_cfg(list) = AirPlayOS::Config.save_json_atomic(AirPlayOS.path(:actions), { "actions" => list })
 
   def test_custom_config_validation
     actions_cfg([{ "id" => "restart-avahi", "label" => "Restart mDNS", "exec" => ["/usr/bin/systemctl", "restart", "avahi-daemon"], "timeout" => 60 }])
@@ -29,11 +29,11 @@ class ControlTest < AmpberryTest
      [{ "id" => "x", "exec" => ["/bin/true"], "timeout" => 0 }, /timeout/],
      [{ "id" => "wifi-scan", "exec" => ["/bin/true"] }, /collides with a built-in/]].each do |bad, re|
       actions_cfg([bad])
-      e = assert_raises(Ampberry::Error) { A.load_custom }
+      e = assert_raises(AirPlayOS::Error) { A.load_custom }
       assert_match re, e.message
     end
     actions_cfg([{ "id" => "dup", "exec" => ["/bin/true"] }, { "id" => "dup", "exec" => ["/bin/false"] }])
-    assert_raises(Ampberry::Error) { A.load_custom }
+    assert_raises(AirPlayOS::Error) { A.load_custom }
   end
 
   def test_catalogue
@@ -76,8 +76,8 @@ class ControlTest < AmpberryTest
       r = A.run_action("settings-apply", { "settings" => { "name" => "Kitchen" } })
       assert r["ok"], r["error"]
       assert_equal "Kitchen", r["result"]["settings"]["name"]
-      assert_equal "Kitchen", Ampberry::Config.load_json(Ampberry.path(:settings))["name"]
-      assert_includes slurp(Ampberry.path(:shairport_conf)), 'name = "Kitchen";'
+      assert_equal "Kitchen", AirPlayOS::Config.load_json(AirPlayOS.path(:settings))["name"]
+      assert_includes slurp(AirPlayOS.path(:shairport_conf)), 'name = "Kitchen";'
 
       r = A.run_action("restart-avahi")
       refute r["ok"]
@@ -90,7 +90,7 @@ class ControlTest < AmpberryTest
       r = A.run_action("clean-reboot", { "reset_settings" => true })
       assert r["ok"] && r["result"]["rebooting"]
       assert_kind_of Proc, r[:after], "reboot deferred until after the response"
-      refute File.exist?(Ampberry.path(:settings))
+      refute File.exist?(AirPlayOS.path(:settings))
       assert_includes cmds, "cloud-init clean --logs"
       refute_includes cmds, "systemctl reboot"
       r[:after].call
@@ -120,7 +120,7 @@ class ControlTest < AmpberryTest
   # STDOUT of the handler is the client socket: log lines must never land there (they broke the
   # UI's JSON parsing on the device).
   def test_log_lines_go_to_stderr_not_the_socket
-    Ampberry::Log.init("control")
+    AirPlayOS::Log.init("control")
     out, err = capture_io { roundtrip(%({"action":"wifi-status"}\n), allowed_users: ["nobody-else"]) }
     assert_empty out
     assert_match(/rejected connection/, err)
@@ -133,7 +133,7 @@ class ControlTest < AmpberryTest
     me = Etc.getpwuid(Process.uid).name
     thread = Thread.new do
       conn = server.accept
-      Ampberry::Run.runner = ->(cmd, opts) { device_mock(cmd, opts) || { status: 0, out: "" } }
+      AirPlayOS::Run.runner = ->(cmd, opts) { device_mock(cmd, opts) || { status: 0, out: "" } }
       C.handle_stream(conn, conn, allowed_users: [me])
       conn.close
     end
@@ -154,7 +154,7 @@ class ControlTest < AmpberryTest
     refute missing["ok"]
     assert_match(/unavailable/, missing["error"])
   ensure
-    Ampberry::Run.runner = nil
+    AirPlayOS::Run.runner = nil
     server&.close
   end
 end

@@ -3,11 +3,11 @@
 require "net/http"
 require "uri"
 
-module Ampberry
+module AirPlayOS
   # Remote control of the AirPlay *sender* (play/pause, next, previous). shairport-sync hands us
   # the session's DACP id and Active-Remote token in the metadata; the phone advertises its DACP
   # server as iTunes_Ctrl_<dacp_id>._dacp._tcp. One HTTP GET with the token is the command.
-  # Needs no privilege: the web UI calls it directly (as the ampberry user).
+  # Needs no privilege: the web UI calls it directly (as the airplay-os user).
   module Remote
     COMMANDS = %w[playpause play pause nextitem previtem].freeze
     TIMEOUT = 3
@@ -36,17 +36,17 @@ module Ampberry
 
       # `now` is the now-playing snapshot (dacp_id, active_remote). Returns a small result hash.
       def command(cmd, now)
-        raise Ampberry::Error, "unknown remote command #{cmd}" unless COMMANDS.include?(cmd)
+        raise AirPlayOS::Error, "unknown remote command #{cmd}" unless COMMANDS.include?(cmd)
 
         id = now["dacp_id"].to_s
         token = now["active_remote"].to_s
-        raise Ampberry::Error, "no AirPlay session to control" if !now["active"] || id.empty? || token.empty?
+        raise AirPlayOS::Error, "no AirPlay session to control" if !now["active"] || id.empty? || token.empty?
 
         host, port = discover(id)
-        raise Ampberry::Error, "the sender does not advertise remote control (DACP)" unless host
+        raise AirPlayOS::Error, "the sender does not advertise remote control (DACP)" unless host
 
         status, = (http || DEFAULT_HTTP).call(URI("http://#{host}:#{port}/ctrl-int/1/#{cmd}"), { "Active-Remote" => token })
-        raise Ampberry::Error, "sender answered HTTP #{status}" unless (200..299).cover?(status)
+        raise AirPlayOS::Error, "sender answered HTTP #{status}" unless (200..299).cover?(status)
 
         { "command" => cmd, "sender" => "#{host}:#{port}" }
       end

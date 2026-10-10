@@ -1,4 +1,4 @@
-# shairport-sync for the Ampberry appliance: AirPlay 2 only, ALSA + soxr + Avahi, metadata pipe.
+# shairport-sync for the AirPlay OS appliance: AirPlay 2 only, ALSA + soxr + Avahi, metadata pipe.
 # Based on nixpkgs-unstable's expression (5.5.2); nixpkgs passes --with-metadata but not
 # --with-metadata-pipe, and enables every audio backend — both are changed here, which is why
 # this derivation is built by our Linux builder instead of being fetched from the cache.
@@ -47,7 +47,7 @@
       src = if shairportSrc != null then shairportSrc else old.src;
       configureFlags = (old.configureFlags or [ ]) ++ [ "--with-metadata-pipe" ];
       meta = (old.meta or { }) // {
-        description = "Shairport Sync ${v} — Ampberry build (AirPlay 2, ALSA, soxr, Avahi, metadata pipe)";
+        description = "Shairport Sync ${v} — AirPlay OS build (AirPlay 2, ALSA, soxr, Avahi, metadata pipe)";
         platforms = lib.platforms.linux;
       };
     }

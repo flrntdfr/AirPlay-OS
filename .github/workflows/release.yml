@@ -1,13 +1,11 @@
-# Every commit on main is a build, every build is a version: vN with N = the commit count
+# Every commit on main is a build (bump.yml starts it), every build is a version: vN with N = the commit count
 # (the same number the device shows in Settings). The job tests, builds the flake natively on
 # arm64, builds the flashable image with pi-gen, and publishes release vN with exactly one
 # asset — the image — and one line in the body: the link to paste into Raspberry Pi Imager.
 name: release
 
 on:
-  push:
-    branches: [main]
-  workflow_dispatch:
+  workflow_dispatch: # started by bump.yml once the README points at this build
 
 permissions:
   contents: write
@@ -49,7 +47,7 @@ jobs:
 
       - name: Build the flake (tools + UI run their tests; both device systems)
         run: |
-          nix build --print-build-logs .#ampberry-tools .#ampberry-ui
+          nix build --print-build-logs .#airplay-os-tools .#airplay-os-ui
           nix build --print-build-logs .#systemConfigs.ampberry .#systemConfigs.hifiberry
 
       - name: Build the image (pi-gen, generic — no secrets)
@@ -74,20 +72,3 @@ jobs:
           body: ""
           files: build/${{ steps.v.outputs.asset }}
           make_latest: true
-
-      # Keep the README download command on the release just published. The push uses the
-      # workflow token, so it does not trigger another run.
-      - name: Point the README at ${{ steps.v.outputs.tag }}
-        env:
-          TAG: ${{ steps.v.outputs.tag }}
-          ASSET: ${{ steps.v.outputs.asset }}
-        run: |
-          sed -i -E \
-            -e "s|^# Fetch the latest version.*|# Fetch the latest version ($TAG)|" \
-            -e "s|releases/download/[^ ]+$|releases/download/$TAG/$ASSET|" README.md
-          git diff --quiet README.md && exit 0
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "README" README.md
-          git pull --rebase origin main
-          git push origin HEAD:main

@@ -1,4 +1,4 @@
-# Ruby side of Ampberry: the `ampberry` CLI (provisioning, settings, Wi-Fi onboarding, firewall,
+# Ruby side of AirPlay OS: the `airplay-os` CLI (provisioning, settings, Wi-Fi onboarding, firewall,
 # the root-side control handler) and the metadata daemon. Ruby stdlib only; tests run at build time.
 {
   lib,
@@ -13,7 +13,7 @@ let
   ruby = ruby_3_4;
 in
 stdenvNoCC.mkDerivation {
-  pname = "ampberry-tools";
+  pname = "airplay-os-tools";
   inherit version;
 
   src = lib.cleanSourceWith {
@@ -29,7 +29,7 @@ stdenvNoCC.mkDerivation {
         "bin"
         "test"
         "etc"
-        "devices" # the test suite checks every device definition
+        "docs" # the test suite checks every device definition (docs/devices)
       ];
   };
 
@@ -48,22 +48,22 @@ stdenvNoCC.mkDerivation {
 
   installPhase = ''
     runHook preInstall
-    install -d $out/lib/ampberry $out/libexec/ampberry $out/bin $out/share/ampberry
-    cp -r lib/. $out/lib/ampberry/
-    install -m 0755 bin/ampberry $out/libexec/ampberry/ampberry
-    install -m 0644 etc/ampberry/actions.json $out/share/ampberry/actions.json
+    install -d $out/lib/airplay_os $out/libexec/airplay-os $out/bin $out/share/airplay-os
+    cp -r lib/. $out/lib/airplay_os/
+    install -m 0755 bin/airplay-os $out/libexec/airplay-os/airplay-os
+    install -m 0644 etc/airplay-os/actions.json $out/share/airplay-os/actions.json
     # Host tools (systemctl, nmcli, ufw, apt-get ...) come from Raspberry Pi OS via the caller's
     # PATH on purpose; only the Ruby load path is wired here.
-    makeWrapper ${ruby}/bin/ruby $out/bin/ampberry \
-      --add-flags "-I$out/lib/ampberry" \
-      --add-flags "$out/libexec/ampberry/ampberry"
+    makeWrapper ${ruby}/bin/ruby $out/bin/airplay-os \
+      --add-flags "-I$out/lib/airplay_os" \
+      --add-flags "$out/libexec/airplay-os/airplay-os"
     runHook postInstall
   '';
 
   meta = {
-    description = "Ampberry appliance tools (provisioning, settings, Wi-Fi onboarding, firewall, control API, metadata daemon)";
+    description = "AirPlay OS appliance tools (provisioning, settings, Wi-Fi onboarding, firewall, control API, metadata daemon)";
     license = lib.licenses.mit;
     platforms = lib.platforms.unix;
-    mainProgram = "ampberry";
+    mainProgram = "airplay-os";
   };
 }

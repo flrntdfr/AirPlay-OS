@@ -2,24 +2,24 @@
 
 require "json"
 
-module Ampberry
+module AirPlayOS
   # Wi-Fi status, onboarding hotspot and network joining on top of NetworkManager (nmcli).
   #
-  # State machine (ensure, run by ampberry-wifi-fallback.timer every few minutes):
+  # State machine (ensure, run by airplay-os-wifi-fallback.timer every few minutes):
   #   connected            → hotspot down, miss counter reset
-  #   not connected ×2     → (no eth0 carrier) bring the "Ampberry-setup" hotspot up
+  #   not connected ×2     → (no eth0 carrier) bring the "AirPlay-OS-setup" hotspot up
   #   hotspot older than   → bring it down so NetworkManager can retry the known networks;
   #     HOTSPOT_MAX_AGE      if that fails twice again, the hotspot returns
   #
-  # The hotspot is WPA2 (setup_psk from /etc/ampberry/secrets.json), 2.4 GHz, NM "shared" mode
-  # (NM runs dnsmasq; the flake's dnsmasq-shared.d/ampberry-captive.conf answers every name with
+  # The hotspot is WPA2 (setup_psk from /etc/airplay-os/secrets.json), 2.4 GHz, NM "shared" mode
+  # (NM runs dnsmasq; the flake's dnsmasq-shared.d/airplay-os-captive.conf answers every name with
   # 10.42.0.1 so the phone's captive-portal sheet opens the setup page).
   #
   # connect adds a new profile and only tears the hotspot down for the attempt; on failure the new
   # profile is deleted and the hotspot restored. Existing profiles are never deleted.
   module Wifi
-    HOTSPOT_NAME = "Ampberry-setup"
-    HOTSPOT_SSID = "Ampberry-setup"
+    HOTSPOT_NAME = "AirPlay-OS-setup"
+    HOTSPOT_SSID = "AirPlay-OS-setup"
     IFACE = "wlan0"
     MISSES_FOR_HOTSPOT = 2
     HOTSPOT_MAX_AGE = 15 * 60
@@ -97,7 +97,7 @@ module Ampberry
       # ---- hotspot ----------------------------------------------------------------------------
 
       def ensure_hotspot_profile(psk)
-        raise Ampberry::Error, "hotspot PSK must be 8..63 characters" unless psk.is_a?(String) && psk.length.between?(8, 63)
+        raise AirPlayOS::Error, "hotspot PSK must be 8..63 characters" unless psk.is_a?(String) && psk.length.between?(8, 63)
         return false if profile_exists?(HOTSPOT_NAME)
 
         Run.run("nmcli", "con", "add", "type", "wifi", "ifname", IFACE, "con-name", HOTSPOT_NAME,
@@ -129,12 +129,12 @@ module Ampberry
       # ---- joining a network -----------------------------------------------------------------
 
       def connect(ssid, psk, no_boot_config: false)
-        raise Ampberry::Error, "SSID must be 1..32 characters" unless ssid.is_a?(String) && ssid.length.between?(1, 32)
-        raise Ampberry::Error, "SSID contains control characters" if ssid.match?(/[\x00-\x1f]/)
+        raise AirPlayOS::Error, "SSID must be 1..32 characters" unless ssid.is_a?(String) && ssid.length.between?(1, 32)
+        raise AirPlayOS::Error, "SSID contains control characters" if ssid.match?(/[\x00-\x1f]/)
 
         open = psk.nil? || psk.empty?
         valid_psk = psk.to_s.length.between?(8, 63) || psk.to_s.match?(/\A\h{64}\z/)
-        raise Ampberry::Error, "passphrase must be 8..63 characters or a 64-digit hex PSK (empty for an open network)" if !open && !valid_psk
+        raise AirPlayOS::Error, "passphrase must be 8..63 characters or a 64-digit hex PSK (empty for an open network)" if !open && !valid_psk
 
         had_hotspot = hotspot_active?
         existed = profile_exists?(ssid)
@@ -151,7 +151,7 @@ module Ampberry
         unless r.status.zero?
           Run.try_run("nmcli", "con", "delete", "id", ssid, timeout: 30) unless existed
           hotspot_on if had_hotspot
-          raise Ampberry::Error, "could not join '#{ssid}': #{r.err.strip}"
+          raise AirPlayOS::Error, "could not join '#{ssid}': #{r.err.strip}"
         end
         save_state("hotspot_since" => 0, "misses" => 0)
         write_network_config(ssid, open ? nil : psk) unless no_boot_config
@@ -214,7 +214,7 @@ module Ampberry
 
       # Returns true when the file was (re)written.
       def write_network_config(ssid, psk, country: "DE")
-        path = Ampberry.path(:network_config)
+        path = AirPlayOS.path(:network_config)
         yaml = render_network_config(ssid, psk, country: country)
         if File.exist?(path)
           old = File.read(path)
@@ -229,7 +229,7 @@ module Ampberry
 
       private
 
-      def yaml_q(s) = %("#{s.gsub('\\', '\\\\\\\\').gsub('"', '\\"')}")
+      def yaml_q(s) = %("#{s.gsub(/[\\"]/) { "\\#{$&}" }}")
 
       def ip4_of(iface)
         r = Run.try_run("ip", "-4", "-o", "addr", "show", "dev", iface, quiet: true, read_only: true)
@@ -239,25 +239,25 @@ module Ampberry
       end
 
       def carrier?(iface)
-        # through Ampberry.root so tests (and unsandboxed builds) never read the build host's interfaces
-        File.read(File.join(Ampberry.root, "/sys/class/net/#{iface}/carrier")).include?("1")
+        # through AirPlayOS.root so tests (and unsandboxed builds) never read the build host's interfaces
+        File.read(File.join(AirPlayOS.root, "/sys/class/net/#{iface}/carrier")).include?("1")
       rescue SystemCallError
         false
       end
 
       def setup_psk
-        path = Ampberry.path(:secrets)
-        raise Ampberry::Error, "no hotspot PSK configured (#{path} missing)" unless File.exist?(path)
+        path = AirPlayOS.path(:secrets)
+        raise AirPlayOS::Error, "no hotspot PSK configured (#{path} missing)" unless File.exist?(path)
 
-        Config.load_json(path).fetch("setup_psk") { raise Ampberry::Error, "setup_psk missing in #{path}" }
+        Config.load_json(path).fetch("setup_psk") { raise AirPlayOS::Error, "setup_psk missing in #{path}" }
       end
 
       def load_state
-        p = Ampberry.path(:wifi_state)
+        p = AirPlayOS.path(:wifi_state)
         File.exist?(p) ? Config.load_json(p) : {}
       end
 
-      def save_state(state) = Config.save_json_atomic(Ampberry.path(:wifi_state), state)
+      def save_state(state) = Config.save_json_atomic(AirPlayOS.path(:wifi_state), state)
     end
   end
 end
