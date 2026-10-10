@@ -4,7 +4,7 @@ Raspberry Pi OS Lite keeps the officially supported base (apt-managed kernel and
 NetworkManager, avahi, cloud-init). Everything above the kernel is declared in the Nix flake at the
 root of this repo and applied with [system-manager](https://github.com/numtide/system-manager):
 packages, systemd units, `/etc` files, the firewall, the sshd policy, branding. One system per
-device — `systemConfigs.<id>` built from `devices/<id>.json`.
+device — `systemConfigs.<id>` built from `docs/devices/<id>.json`.
 
 ```
 iPhone/Mac ──AirPlay 2──▶ nqptp (PTP 319/320) + shairport-sync (RTSP 7000) ──ALSA hw:0──▶ HiFiBerry HAT
@@ -25,8 +25,8 @@ Runtime-mutable state stays outside Nix: `/etc/shairport-sync.conf` (rendered fr
 | Path | What |
 |---|---|
 | `flake.nix`, `flake.lock` | inputs: nixpkgs 26.05, nixpkgs-unstable (shairport-sync 5.5.2 + nqptp 1.2.8 only), system-manager release-26.05. Outputs: `systemConfigs.<id>`, `packages`, `lib.withShairport`, `devices` |
-| `devices/<id>.json` | the device definition: `id`, `hostname`, `pretty_name`, `description`, `board`, `hat`, `overlay` (null = HAT EEPROM announces it), `wifi`, `bluetooth`, `primary_interface`, `address`, `network` (LAN CIDRs, Wi‑Fi interface, hotspot subnet), `defaults` (shairport-sync settings). Shipped to the box as `/etc/airplay-os/device.json` and `/etc/airplay-os/defaults.json` |
-| `devices/<Id>.md` | the installation record: hardware, network, what runs, which build since when |
+| `docs/devices/<id>.json` | the device definition: `id`, `hostname`, `pretty_name`, `description`, `board`, `hat`, `overlay` (null = HAT EEPROM announces it), `wifi`, `bluetooth`, `primary_interface`, `address`, `network` (LAN CIDRs, Wi‑Fi interface, hotspot subnet), `defaults` (shairport-sync settings). Shipped to the box as `/etc/airplay-os/device.json` and `/etc/airplay-os/defaults.json` |
+| `docs/devices/<Id>.md` | the installation record: hardware, network, what runs, which build since when |
 | `nix/system/airplay-os.nix` | the system-manager module: packages, units, `/etc`, tmpfiles (`/opt/airplay-os` → the flake source in the store) |
 | `nix/system/firewall.nix` | nftables ruleset generated from the device's LAN; hotspot rules only for Wi‑Fi devices |
 | `nix/system/branding.nix` | `/etc/airplay-os/release` (NAME, DEVICE, FLAKE_VERSION, BUILD), issue, MOTD |
