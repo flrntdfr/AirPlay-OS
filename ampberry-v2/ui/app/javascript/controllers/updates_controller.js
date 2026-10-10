@@ -36,7 +36,7 @@ export default class extends Controller {
   async check() {
     this.setBusy("Checking…")
     try {
-      const r = await fetch(this.checkUrlValue, { method: "POST", headers: this.headers })
+      const r = await this.post(this.checkUrlValue)
       this.apply(await r.json())
     } catch (e) {
       this.apply({ error: String(e) })
@@ -46,7 +46,7 @@ export default class extends Controller {
   async update() {
     this.setBusy("Updating…")
     try {
-      const r = await fetch(this.applyUrlValue, { method: "POST", headers: this.headers })
+      const r = await this.post(this.applyUrlValue)
       const res = await r.json()
       if (!res.ok) { this.show("error", "✗ " + (res.error || r.status), res.error); return }
       this.watch()
@@ -104,6 +104,14 @@ export default class extends Controller {
   paint(state) {
     const b = this.buttonTarget
     b.className = b.dataset.base + " " + (this.tonesValue[state] || "")
+  }
+
+  // A POST that cannot hang: the badge must never stay on "Checking…" — a request the server
+  // never answers (UI restarting mid-deploy, network gone) fails after 20 s and shows as such.
+  post(url) {
+    const abort = new AbortController()
+    const timer = setTimeout(() => abort.abort(), 20000)
+    return fetch(url, { method: "POST", headers: this.headers, signal: abort.signal }).finally(() => clearTimeout(timer))
   }
 
   get headers() {
