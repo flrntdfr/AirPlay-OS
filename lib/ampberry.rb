@@ -36,6 +36,7 @@ module Ampberry
     pi_home: "/home/pi",
     flake: "/opt/ampberry",
     release: "/etc/ampberry/release",
+    device: "/etc/ampberry/device.json", # devices/<id>.json, shipped by the flake
     update_flake: "/var/lib/ampberry/shairport-update", # written by `redeploy run --update-shairport`
     system_path: "/etc/ampberry/system-path",
     system_manager_path: "/etc/ampberry/system-manager-path",
@@ -45,6 +46,25 @@ module Ampberry
   }.freeze
 
   class Error < StandardError; end
+
+  # What the tools assume when /etc/ampberry/device.json is missing (tests, the Mac preview,
+  # a box provisioned before device definitions existed): the original Ampberry.
+  DEFAULT_DEVICE = {
+    "id" => "ampberry", "hostname" => "ampberry", "pretty_name" => "Ampberry", "description" => "AirPlay 2 speaker",
+    "overlay" => "hifiberry-dacplus-std", "wifi" => true, "bluetooth" => false, "primary_interface" => "wlan0"
+  }.freeze
+
+  # The device this box is (devices/<id>.json as shipped to /etc/ampberry/device.json).
+  def self.device
+    @device ||= begin
+      require "json"
+      DEFAULT_DEVICE.merge(JSON.parse(File.read(path(:device))))
+    rescue SystemCallError, JSON::ParserError
+      DEFAULT_DEVICE.dup
+    end
+  end
+
+  def self.reset_device! = @device = nil
 
   def self.root
     ENV.fetch("AMPBERRY_ROOT", "")

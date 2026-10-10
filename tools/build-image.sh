@@ -38,7 +38,7 @@ cp build/user-data build/network-config build/meta-data "$PG/stage-ampberry/02-c
 # the flake source exactly as Nix sees it (git-filtered: no build/, no secrets, no .git)
 SRC="$(nix flake metadata --json . | python3 -c 'import json,sys; print(json.load(sys.stdin)["path"])')"
 rm -rf "$PG/stage-ampberry/03-flake/files/ampberry"
-cp -R "$SRC/ampberry-v2/" "$PG/stage-ampberry/03-flake/files/ampberry" # the flake subdirectory of the repo
+cp -R "$SRC/" "$PG/stage-ampberry/03-flake/files/ampberry" # the flake = the repo repo
 chmod -R u+w "$PG/stage-ampberry/03-flake/files/ampberry"
 
 # 3. config: committed part + secrets

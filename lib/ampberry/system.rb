@@ -9,13 +9,6 @@ module Ampberry
   # Host-level idempotent steps the flake cannot express: boot config, users/dirs, dpkg-owned
   # config files (avahi), hostname, HiFiBerry OS leftovers, and the "clean reboot".
   module System
-    CONFIG_TXT_LINES = %w[
-      dtparam=audio=off
-      dtoverlay=hifiberry-dacplus-std
-      dtparam=i2c_arm=on
-      dtoverlay=disable-bt
-    ].freeze
-    PRETTY_HOSTNAME = "Ampberry"
     UI_USER = "ampberry"
     AUDIO_USER = "shairport-sync"
     LEFTOVER_PATTERNS = %w[hifiberry-* hbos-* pipewire* wireplumber rpi-connect-lite pipewire-api ladspa-speakereq ladspa-riaa].freeze
@@ -34,7 +27,19 @@ module Ampberry
 
       # Ensure the HAT lines are present (appended under a trailing [all] section when missing) and
       # that the onboard audio is not re-enabled. Returns { "changed" => bool, "added" => [...] }.
-      def ensure_config_txt(path: Ampberry.path(:config_txt), lines: CONFIG_TXT_LINES)
+      # /boot/firmware/config.txt lines for this device (devices/<id>.json): onboard audio off,
+      # the HAT overlay (none when the HAT's EEPROM is left to announce it), I2C for the DAC,
+      # and each radio the device does not use switched off at the device-tree level.
+      def config_txt_lines(device = Ampberry.device)
+        lines = ["dtparam=audio=off"]
+        lines << "dtoverlay=#{device['overlay']}" if device["overlay"].is_a?(String) && !device["overlay"].empty?
+        lines << "dtparam=i2c_arm=on"
+        lines << "dtoverlay=disable-bt" unless device["bluetooth"]
+        lines << "dtoverlay=disable-wifi" unless device["wifi"]
+        lines
+      end
+
+      def ensure_config_txt(path: Ampberry.path(:config_txt), lines: config_txt_lines)
         content = File.read(path).lines.map(&:chomp)
         have = content.reject { |l| l.match?(/\A\s*#/) }.map(&:strip)
         missing = lines - have
@@ -179,7 +184,7 @@ module Ampberry
 
       # ---- hostname ----------------------------------------------------------------------------
 
-      def ensure_pretty_hostname(pretty: PRETTY_HOSTNAME)
+      def ensure_pretty_hostname(pretty: Ampberry.device["pretty_name"])
         cur = Run.try_run("hostnamectl", "hostname", "--pretty", quiet: true, read_only: true)
         have = cur.status.zero? ? cur.out.strip : ""
         return false if have == pretty

@@ -85,7 +85,7 @@ class RedeployTest < AmpberryTest
   end
 
   def test_run_update_writes_the_override_flake_locks_it_and_switches_from_it
-    src = File.join(ROOT, "nix/store/abc-source/ampberry-v2")
+    src = File.join(ROOT, "nix/store/abc-source") # the flake is the repo root
     FileUtils.mkdir_p(src)
     spit(Ampberry.path(:release), "NAME=\"Ampberry\"\nFLAKE_VERSION=\"647bf3b\"\nBUILD=\"24\"\n")
     sm_dir = File.join(ROOT, "fake-sm-update")
@@ -103,9 +103,10 @@ class RedeployTest < AmpberryTest
     assert R.run(flake: src, system_manager: sm_dir, nix: nix, provision_cmd: [refresh], update: { "version" => "5.5.3", "tag" => "5.5.3" })
     dir = Ampberry.path(:update_flake)
     flake = slurp(File.join(dir, "flake.nix"))
-    assert_includes flake, "path:#{File.realpath(File.dirname(src))}?dir=ampberry-v2", "the shipped flake is the input (store copy, subdirectory)"
+    assert_includes flake, "inputs.ampberry.url = \"path:#{File.realpath(src)}\";", "the shipped flake (its store copy) is the input"
     assert_includes flake, "github:mikebrady/shairport-sync/5.5.3"
     assert_includes flake, 'version = "5.5.3"'
+    assert_includes flake, 'device = "ampberry"'
     assert_includes flake, 'build = "24"'
     assert_includes flake, 'flakeVersion = "647bf3b"'
     log = slurp(R.log_path)
@@ -115,6 +116,12 @@ class RedeployTest < AmpberryTest
     assert_match(/== update-shairport finished in \d+s/, log)
     st = JSON.parse(slurp(R.state_path))
     assert_equal %w[done update-shairport], [st["state"], st["kind"]]
+
+    # a flake in a subdirectory of the store copy is referenced with ?dir=
+    sub = File.join(src, "os")
+    FileUtils.mkdir_p(sub)
+    assert R.run(flake: sub, system_manager: sm_dir, nix: nix, provision_cmd: [refresh], update: { "version" => "5.5.3", "tag" => "5.5.3" })
+    assert_includes slurp(File.join(dir, "flake.nix")), "path:#{File.realpath(src)}?dir=os"
   end
 
   def test_action_update_shairport_needs_a_known_newer_release

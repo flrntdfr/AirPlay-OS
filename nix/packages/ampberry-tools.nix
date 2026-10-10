@@ -50,7 +50,6 @@ stdenvNoCC.mkDerivation {
     install -d $out/lib/ampberry $out/libexec/ampberry $out/bin $out/share/ampberry
     cp -r lib/. $out/lib/ampberry/
     install -m 0755 bin/ampberry $out/libexec/ampberry/ampberry
-    install -m 0644 etc/ampberry/defaults.json $out/share/ampberry/defaults.json
     install -m 0644 etc/ampberry/actions.json $out/share/ampberry/actions.json
     # Host tools (systemctl, nmcli, ufw, apt-get ...) come from Raspberry Pi OS via the caller's
     # PATH on purpose; only the Ruby load path is wired here.

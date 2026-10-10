@@ -1,57 +1,96 @@
-# HiFiBerry — Infrastructure as Context
+# AirPlay OS
+> Stream AirPlay to Raspberries.
 
-This repository is the **Infrastructure as Context** for two Raspberry Pi audio appliances:
-**HifiBerry** runs [HiFiBerry OS Next Generation (hbosng)](https://github.com/hifiberry/hifiberry-os/tree/hbosng);
-**Ampberry** is a Nix-managed AirPlay 2 speaker on Raspberry Pi OS Lite, whose flake lives here in
-[`ampberry-v2/`](./ampberry-v2/README.md).
+## Introduction
 
-It is not deployment automation. It is a curated, human- and agent-readable description of
-**what these machines are, how they're wired, and the decisions behind their current state** —
-the context an AI assistant (or a future me) needs to operate them safely without re-discovering
-everything from scratch each time.
+[AirPlay OS](./) is a lightweight linux distribution
+
+- rpi-image-gen (optional)
+- nix (optional)
+- Ruby (optional) and ruby on rails
+- Driver for HifiBerry, tested on Amp and Hifiberry HAT
+
+## Setup
+
+[Claude skill]
+
+### Flash the SD Card
+
+- Use the Raspberry pi imager and this URL
+- If using wireless AirPlay:
+  - Connect to the wifi named "Bonjour" (only advertised 1h after boot stop unless connected to wifi)
+  - open https://ampberry.local and setup wifi
+- 
+
+## Development
+
+### Build
+
+```sh
+cp secrets.env.example secrets.env
+docker build airplay-os
+```
+
+**Configuration**
+
+```env
+# secrets.env
+
+# == System ==
+TIMEZONE="Europe/Paris"
+
+# == WIFI==
+WIFI_SSID="Wifi de la maison"
+WIFI_PSK="******************" # Connect directly to network on boot…
+WIFI_COUNTRY="FR"
+# SETUP_PSK="bonjour" # … or Start in setup mode on http://airplay.local
+
+# == user ==
+SSH_AUTHORIZED_KEYS="ssh-ed25519 AAAA... you@host"
+PI_PASSWORD_HASH="" # getent shadow pi | cut -d: -f2
+```
+
+### Test
+
+```
+# Test locally in Docker
+docker run airplay-os tests --local
+
+# Test remotely on the Raspberry
+docker run airplay-os tests --remote ampberry.lan
+```
+
+### Deploy
+
+```
+docker run airplay-os deploy --version 1.1.0 ampberry.lan
+```
 
 ## Devices
 
-| Device | Doc | Board + HAT | Role | Network |
-|--------|-----|-------------|------|---------|
-| **Ampberry** | [`Ampberry.md`](./Ampberry.md) | Pi 3B + DAC+/**Amp2** | AirPlay 2 powered speaker (built-in amp → passive speakers) — Raspberry Pi OS Lite + Nix flake (`ampberry-v2/`) | Wi‑Fi `192.168.178.221` |
-| **HifiBerry** | [`HifiBerry.md`](./HifiBerry.md) | Pi 4B + **DAC+** (line-out) | Line-level source → external amp — HiFiBerry OS NG | **Ethernet** `192.168.178.244` (radios off) |
+One definition per device in [`devices/`](./devices/) (`<id>.json`: hostname, HAT, radios, LAN,
+defaults) and one record of what is installed (`<Id>.md`). Everything done to a device is logged in
+[`OPERATIONS.md`](./OPERATIONS.md).
 
-Both run Debian 13 (trixie). HifiBerry carries the HiFiBerry stack (PipeWire/WirePlumber,
-AudioControl, Vue WebUI behind nginx, LADSPA Speaker EQ); Ampberry carries only shairport-sync +
-nqptp, a Ruby tool set and a minimal Rails UI, all declared in the flake and applied with
-system-manager. The per-device docs are the source of truth for hardware, software versions,
-services/ports, key paths, the signal/gain chain, and device-specific gotchas.
+| Device | Hardware | Status |
+|---|---|---|
+| [Ampberry](./devices/Ampberry.md) | Pi 3B + HiFiBerry Amp2, Wi‑Fi | AirPlay OS build 34 (`v34`) |
+| [HifiBerry](./devices/HifiBerry.md) | Pi 4B + HiFiBerry DAC+, Ethernet | HiFiBerry OS NG — migration pending |
 
-## How to use this repo (for an AI assistant)
+## What works today (Nix)
 
-> Operating rules live in [`AGENTS.md`](./AGENTS.md) — read it first, then the relevant device doc.
+The Docker commands above are the goal; today the OS is built and deployed with Nix from the
+repo root (see [`docs/architecture.md`](./docs/architecture.md)):
 
-1. **Read the device's `.md` first.** It lists the SSH target, the audio chain, how changes are
-   made (HifiBerry: config + `systemctl --user`; Ampberry: the flake + `system-manager`), and known
-   gotchas (Ampberry's `volume_max_db` ceiling; HifiBerry's Ethernet-only / radios-off setup).
-2. **Honour the per-device "Agent guidelines"** — the Do / Ask-first / Never lists. These are live
-   appliances; prefer config edits + service restarts over reboots, and treat audio-stack/kernel
-   upgrades as manual, listen-tested steps.
-3. **Keep the docs in sync.** When you change a machine's state (config, services, policy), update
-   that device's `.md` in the same session so context never drifts from reality.
+```sh
+# test (Mac)
+nix shell nixpkgs#ruby_3_4 --command ruby -Ilib -Itest -e 'Dir["test/*_test.rb"].sort.each { |f| require File.expand_path(f) }'
+nix build .#ampberry-ui                     # renders every page of the web UI as a check
 
-## Current state (snapshot)
+# deploy a device (builds on the nix-darwin linux-builder, pushes the closure over SSH)
+nix run github:numtide/system-manager/release-26.05 -- switch --flake .#ampberry --target-host pi@ampberry.local --sudo
+DEVICE=ampberry tools/verify.sh
 
-- **Audio:** HifiBerry at unity gain end-to-end. Ampberry (2026-10-08) rebuilt as an AirPlay-2-only
-  appliance with a `volume_max_db` ceiling (−6 dB) because full scale overdrives the Amp2 — see its
-  "Volume ceiling" note.
-- **Updates:** `unattended-upgrades` enabled on both — **Debian security only**, auto-reboot 04:00.
-  HiFiBerry-repo and Raspberry Pi kernel/firmware updates stay manual; Ampberry's stack moves with
-  `flake.lock`.
-- **Access:** `pi` with passwordless sudo on both, SSH keys only (Ampberry: `PermitRootLogin no`,
-  `AllowUsers pi`, nftables LAN-only firewall).
-- **HifiBerry** is intentionally **Ethernet-only** (Wi‑Fi + Bluetooth radios disabled in `config.txt`).
-
-## Conventions
-
-- `aarch64 / arm64` only — never assume x86 binaries.
-- Secrets (MPD/Spotify/Last.fm keys, SSH keys, Wi‑Fi/hotspot PSKs, password hashes) are **never**
-  committed or logged; Ampberry's live only in gitignored `ampberry-v2/secrets.env` / `build/`.
-- Ampberry is deployed only through Nix (`system-manager … --target-host`); never rsync.
-- Each device doc ends with open questions / TBDs (e.g. speaker + amp details to fill in).
+# migrate a box that still runs HiFiBerry OS NG (interactive)
+DEVICE=hifiberry AMPBERRY_HOST=pi@HifiBerry.local tools/apply-live.sh
+```

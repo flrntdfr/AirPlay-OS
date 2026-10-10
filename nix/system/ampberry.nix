@@ -18,6 +18,7 @@ let
   ui = ampberry.ampberry-ui;
   shairport = ampberry.shairport-sync-airplay2;
   nqptp = ampberry.nqptp;
+  device = ampberry.device; # devices/<id>.json — hostname, HAT, radios, defaults
   # system-manager gives units a Nix-only PATH. The Ruby tools drive the Debian side of the box
   # (nmcli, systemctl, journalctl, apt-get, cloud-init, hostnamectl…), which lives in /usr/{bin,sbin}.
   debianPath = [ "/usr" ];
@@ -55,7 +56,9 @@ in
     ];
 
     environment.etc = {
-      "ampberry/defaults.json".source = ../../etc/ampberry/defaults.json;
+      # the device definition and its shairport-sync defaults, straight from devices/<id>.json
+      "ampberry/device.json".text = builtins.toJSON device;
+      "ampberry/defaults.json".text = builtins.toJSON device.defaults;
       "ampberry/actions.json".source = ../../etc/ampberry/actions.json;
       "ampberry/flake-version".text = "${ampberry.version}\n";
       # SSH: keys only, no passwords, no root, one user. Sorts before cloud-init's 50-cloud-init.conf,
@@ -76,6 +79,8 @@ in
         ClientAliveInterval 300
         ClientAliveCountMax 2
       '';
+    }
+    // lib.optionalAttrs device.wifi {
       # Onboarding hotspot: NetworkManager's shared-mode dnsmasq answers every name with the
       # hotspot address so the phone's captive-portal sheet lands on the setup page.
       "NetworkManager/dnsmasq-shared.d/ampberry-captive.conf".text = ''
@@ -258,9 +263,9 @@ in
       };
     };
 
-    # ---- Wi-Fi fallback timer ----------------------------------------------------------------
+    # ---- Wi-Fi fallback timer (Wi‑Fi devices only: an Ethernet-only box keeps its radio off) ----
 
-    systemd.services.ampberry-wifi-fallback = {
+    systemd.services.ampberry-wifi-fallback = lib.mkIf device.wifi {
       description = "Ampberry Wi-Fi check / onboarding hotspot";
       path = debianPath;
       serviceConfig = {
@@ -268,7 +273,7 @@ in
         ExecStart = "${tools}/bin/ampberry wifi ensure";
       };
     };
-    systemd.timers.ampberry-wifi-fallback = {
+    systemd.timers.ampberry-wifi-fallback = lib.mkIf device.wifi {
       description = "Periodic Ampberry Wi-Fi check";
       wantedBy = [ "timers.target" ];
       timerConfig = {

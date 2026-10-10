@@ -74,15 +74,16 @@ module Ampberry
         started = Time.now
         write_state("state" => "running", "kind" => kind, "started_at" => started.utc.iso8601, "pid" => Process.pid, "flake" => flake)
         begin
+          attr = Ampberry.device["id"] # systemConfigs.<id> of the flake
           if update
             say(log, "== ampberry shairport-sync update → #{update['version']} (on top of #{flake})")
             dir = write_update_flake(flake, update)
             # fetches the release tarball; everything else is pinned by the shipped flake's lock
             stream(log, nix || find_nix, "flake", "lock", dir)
-            ref = "#{dir}#ampberry"
+            ref = "#{dir}##{attr}"
           else
             say(log, "== ampberry redeploy #{Ampberry::VERSION} - flake #{flake}")
-            ref = "#{flake}#ampberry"
+            ref = "#{flake}##{attr}"
           end
           sm = system_manager || find_system_manager(log)
           stream(log, "#{sm}/bin/system-manager", "switch", "--flake", ref)
@@ -118,11 +119,11 @@ module Ampberry
       end
 
       # /var/lib/ampberry/shairport-update/flake.nix: the shipped flake (a path: input to its store
-      # copy, flake in the ampberry-v2 subdirectory) + the upstream release, through lib.withShairport.
+      # copy — the store path itself, or ?dir= when the flake lives in a subdirectory of it) +
+      # the upstream release, through lib.withShairport.
       def write_update_flake(flake, update)
-        src = File.realpath(flake) # /nix/store/…-source/ampberry-v2
-        base = File.dirname(src)
-        sub = File.basename(src)
+        src = File.realpath(flake) # /nix/store/…-source or /nix/store/…-source/<subdir>
+        input = File.basename(File.dirname(src)) == "store" ? "path:#{src}" : "path:#{File.dirname(src)}?dir=#{File.basename(src)}"
         rel = release_info
         dir = Ampberry.path(:update_flake)
         FileUtils.mkdir_p(dir)
@@ -130,8 +131,8 @@ module Ampberry
           # Written by `ampberry redeploy run --update-shairport`. The shipped flake with a newer
           # shairport-sync release on top; Redeploy (from /opt/ampberry) returns to the pinned one.
           {
-            description = "Ampberry with shairport-sync #{update['version']}";
-            inputs.ampberry.url = "path:#{base}?dir=#{sub}";
+            description = "#{Ampberry.device['pretty_name']} with shairport-sync #{update['version']}";
+            inputs.ampberry.url = "#{input}";
             inputs.shairport-src = {
               url = "github:#{UPSTREAM}/#{update['tag']}";
               flake = false;
@@ -141,6 +142,7 @@ module Ampberry
               ampberry.lib.withShairport {
                 src = shairport-src;
                 version = "#{update['version']}";
+                device = "#{Ampberry.device['id']}";
                 build = "#{rel['BUILD']}";
                 flakeVersion = "#{rel['FLAKE_VERSION']}";
               };

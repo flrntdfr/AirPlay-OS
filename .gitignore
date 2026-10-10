@@ -1,15 +1,14 @@
-# Ampberry v2 — never commit secrets or rendered artefacts
-ampberry-v2/secrets.env
-ampberry-v2/build/
-ampberry-v2/t/fixtures/*.local.*
+# AirPlay OS — never commit secrets or rendered artefacts
+secrets.env
+build/
+result
 *.swp
 .DS_Store
 
 # Rails UI: local gem install + build artefacts (Tailwind output is produced by the Nix build)
-ampberry-v2/ui/vendor/bundle/
-ampberry-v2/ui/app/assets/builds/
-ampberry-v2/ui/tmp/
-ampberry-v2/ui/log/
-ampberry-v2/ui/.bundle/
+ui/vendor/bundle/
+ui/app/assets/builds/
+ui/tmp/
+ui/log/
+ui/.bundle/
 .claude/launch.json
-ampberry-v2/result

@@ -33,6 +33,8 @@ module Ampberry
           }],
           ["minimize", -> { System.minimize }],
           ["wifi", lambda {
+            next "no Wi‑Fi on this device" unless Ampberry.device["wifi"]
+
             begin
               Wifi.ensure["action"]
             rescue StandardError => e

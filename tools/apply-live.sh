@@ -13,8 +13,10 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-HOST="${AMPBERRY_HOST:-pi@ampberry.local}"
-SSH=(ssh -o ConnectTimeout=10 -o HostKeyAlias=ampberry.local "$HOST")
+DEVICE="${DEVICE:-ampberry}"            # systemConfigs.<id> in flake.nix = devices/<id>.json
+HOST="${AMPBERRY_HOST:-pi@${DEVICE}.local}"
+ALIAS="${AMPBERRY_ALIAS:-${HOST#*@}}"
+SSH=(ssh -o ConnectTimeout=10 -o HostKeyAlias="$ALIAS" "$HOST")
 STAMP="$(date +%Y%m%d-%H%M%S)"
 LOG="build/apply-${STAMP}.log"
 HARVEST=0
@@ -79,7 +81,7 @@ remote "sudo tar czf /home/pi/backup-pre-nix-${STAMP}.tgz /etc/audiocontrol /etc
 	/etc/apt/sources.list.d /etc/apt/apt.conf.d /boot/firmware/config.txt /boot/firmware/user-data /boot/firmware/network-config \
 	/boot/firmware/meta-data /home/pi/.state /home/pi/.shairport /home/pi/.local/state/wireplumber 2>/dev/null; \
 	dpkg --get-selections > /home/pi/dpkg-selections-${STAMP}.txt; apt-mark showmanual > /home/pi/apt-manual-${STAMP}.txt"
-scp -q -o HostKeyAlias=ampberry.local "$HOST:/home/pi/backup-pre-nix-${STAMP}.tgz" "$HOST:/home/pi/dpkg-selections-${STAMP}.txt" "$HOST:/home/pi/apt-manual-${STAMP}.txt" build/
+scp -q -o HostKeyAlias="$ALIAS" "$HOST:/home/pi/backup-pre-nix-${STAMP}.tgz" "$HOST:/home/pi/dpkg-selections-${STAMP}.txt" "$HOST:/home/pi/apt-manual-${STAMP}.txt" build/
 ls -la build/backup-pre-nix-"${STAMP}".tgz
 
 # ---- 3. stop hbos ---------------------------------------------------------------------------------
@@ -114,7 +116,7 @@ fi # FROM_SWITCH
 # ---- 7. switch -------------------------------------------------------------------------------------
 say "system-manager switch (built on the linux-builder, pushed with --target-host)"
 # git-based flake reference: self is git-filtered (build/, secrets never enter the store)
-nix run github:numtide/system-manager/release-26.05 -- switch --flake ".#ampberry" --target-host "$HOST" --sudo
+nix run github:numtide/system-manager/release-26.05 -- switch --flake ".#${DEVICE}" --target-host "$HOST" --sudo
 # Record what is live, for Clean reboot / Redeploy. The system-manager CLI ships inside the closure
 # (environment.systemPackages), so nothing gets built on the Pi.
 remote 'sm=$(readlink -f /run/system-manager/sw/bin/system-manager); echo "${sm%/bin/system-manager}" | sudo tee /etc/ampberry/system-manager-path >/dev/null; \
@@ -126,7 +128,7 @@ remote 'sudo /run/system-manager/sw/bin/ampberry provision'
 say "install the cloud-init seed for Clean reboot"
 # scp on purpose: the seed carries the Wi-Fi PSK and pi's password hash, which must never enter the
 # (world-readable) Nix store — this is the one transfer that does not go through Nix.
-scp -q -o HostKeyAlias=ampberry.local build/user-data build/network-config build/meta-data "$HOST:/tmp/"
+scp -q -o HostKeyAlias="$ALIAS" build/user-data build/network-config build/meta-data "$HOST:/tmp/"
 remote 'sudo install -m 0644 /tmp/user-data /tmp/network-config /tmp/meta-data /boot/firmware/ && rm -f /tmp/user-data /tmp/network-config /tmp/meta-data'
 
 # ---- 9. reboot + verify ----------------------------------------------------------------------------

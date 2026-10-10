@@ -1,5 +1,5 @@
 {
-  description = "Ampberry — AirPlay 2 speaker appliance on Raspberry Pi OS, managed with Nix (system-manager)";
+  description = "AirPlay OS — AirPlay 2 receiver appliance on Raspberry Pi OS, managed with Nix (system-manager)";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
@@ -27,18 +27,21 @@
         "x86_64-linux"
       ];
       forDev = nixpkgs.lib.genAttrs devSystems;
+      lib = nixpkgs.lib;
 
       selfVersion = self.shortRev or self.dirtyShortRev or "dev";
       # Build number = number of commits in the repo: human-sized, monotonic, easy to bump to or
       # roll back to. Nix only knows it for a clean checkout; a dirty tree deploys as "dev".
       selfBuild = if self ? revCount then toString self.revCount else "dev";
 
-      # The network the appliance lives on. Not a secret, so it belongs here, not in secrets.env.
-      network = {
-        lanCidrs = [ "192.168.178.0/24" ];
-        wifiInterface = "wlan0";
-        hotspotCidr = "10.42.0.0/24"; # NetworkManager shared mode default
-      };
+      # One appliance per file in devices/<id>.json: hostname, HAT overlay, radios, LAN, the
+      # shairport-sync defaults. The same JSON reaches the device as /etc/ampberry/device.json,
+      # so the Ruby tools and the flake read one definition. devices/<Id>.md is the install record.
+      deviceIds = [
+        "ampberry"
+        "hifiberry"
+      ];
+      devices = lib.genAttrs deviceIds (id: builtins.fromJSON (builtins.readFile (./devices + "/${id}.json")));
 
       # `version` names the tools/UI derivations; passing the same one keeps them byte-identical
       # (no rebuild on the device when the flake is consumed as an input, see lib.withShairport).
@@ -64,10 +67,11 @@
 
       targetPkgs = pkgsFor target selfVersion;
 
-      # The appliance configuration; `shairport` = { src, version } swaps in another
-      # shairport-sync release (the on-device "Update" button).
+      # The appliance configuration for one device; `shairport` = { src, version } swaps in
+      # another shairport-sync release (the on-device "Update" button).
       mkSystem =
         {
+          device,
           version ? selfVersion,
           build ? selfBuild,
           shairport ? null,
@@ -98,7 +102,8 @@
                 ampberry-tools
                 ampberry-ui
                 ;
-              inherit version build network;
+              inherit version build device;
+              network = device.network;
               flakeSource = self;
               # the system-manager CLI for the device, built with the same nixpkgs as the closure
               systemManager = system-manager.packages.${target}.default;
@@ -109,7 +114,7 @@
     {
       # Packages for the device (aarch64-linux) and, for local development/validation, the dev
       # systems too (the Ruby tools and the Rails UI build anywhere; shairport only on Linux).
-      packages = nixpkgs.lib.genAttrs (nixpkgs.lib.unique (devSystems ++ [ target ])) (
+      packages = lib.genAttrs (lib.unique (devSystems ++ [ target ])) (
         system:
         let
           p = pkgsFor system selfVersion;
@@ -118,16 +123,16 @@
           inherit (p) ampberry-tools ampberry-ui;
           default = p.ampberry-tools;
         }
-        // nixpkgs.lib.optionalAttrs (nixpkgs.lib.hasSuffix "-linux" system) {
+        // lib.optionalAttrs (lib.hasSuffix "-linux" system) {
           inherit (p) shairport-sync-airplay2 nqptp;
         }
       );
 
-      # The appliance: applied with
-      #   system-manager switch --flake .#ampberry --target-host pi@ampberry.local --sudo
+      # One system per device: applied with
+      #   system-manager switch --flake .#<id> --target-host pi@<host> --sudo
       # or, on the device itself (first boot / Clean reboot),
       #   system-manager switch --store-path $(cat /etc/ampberry/system-path)
-      systemConfigs.ampberry = mkSystem { };
+      systemConfigs = lib.mapAttrs (_: device: mkSystem { inherit device; }) devices;
 
       # The same appliance with a newer shairport-sync release on top. The device's "Update"
       # button writes a tiny flake (/var/lib/ampberry/shairport-update) that takes this flake as
@@ -137,19 +142,23 @@
         {
           src,
           version,
+          device ? "ampberry",
           build ? selfBuild,
           flakeVersion ? selfVersion,
         }:
         {
-          systemConfigs.ampberry = mkSystem {
+          systemConfigs.${device} = mkSystem {
             inherit build;
+            device = devices.${device};
             version = flakeVersion;
             shairport = { inherit src version; };
           };
         };
 
+      inherit devices;
+
       checks.${target} = {
-        # The Perl test suite runs as part of the package build (doCheck); this exposes it.
+        # The Ruby test suite runs as part of the package build (doCheck); this exposes it.
         ampberry-tools = targetPkgs.ampberry-tools;
       };
 
@@ -161,9 +170,6 @@
         {
           default = pkgs.mkShell {
             packages = with pkgs; [
-              perl
-              perlPackages.PerlCritic
-              perltidy
               shellcheck
               ruby_3_4
               bundix
@@ -171,7 +177,7 @@
               system-manager.packages.${system}.default
             ];
             shellHook = ''
-              echo "ampberry dev shell — prove -l t/ · bundix · nix build .#ampberry-tools"
+              echo "airplay-os dev shell — ruby -Ilib -Itest … · bundix · nix build .#ampberry-ui"
             '';
           };
         }

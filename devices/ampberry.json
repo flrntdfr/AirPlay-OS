@@ -1,0 +1,28 @@
+{
+  "id": "ampberry",
+  "hostname": "ampberry",
+  "pretty_name": "Ampberry",
+  "description": "AirPlay 2 speaker",
+  "board": "Raspberry Pi 3 Model B",
+  "hat": "HiFiBerry Amp2",
+  "overlay": "hifiberry-dacplus-std",
+  "wifi": true,
+  "bluetooth": false,
+  "primary_interface": "wlan0",
+  "address": "192.168.178.221",
+  "network": {
+    "lanCidrs": [
+      "192.168.178.0/24"
+    ],
+    "wifiInterface": "wlan0",
+    "hotspotCidr": "10.42.0.0/24"
+  },
+  "defaults": {
+    "name": "Ampberry",
+    "password": "",
+    "interpolation": "auto",
+    "output_format": "S32_LE",
+    "volume_max_db": -6.0,
+    "volume_range_db": 60
+  }
+}

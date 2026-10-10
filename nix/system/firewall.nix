@@ -40,11 +40,12 @@ let
         # LAN only: mDNS, nqptp (PTP 319/320), negotiated AirPlay 2 ports
         ip saddr @lan4 udp dport { 5353, 319, 320, 32768-60999 } accept
 
-        # Onboarding hotspot on ${net.wifiInterface}: DHCP DISCOVER arrives from 0.0.0.0 (no source filter),
-        # DNS + captive web UI + SSH only from the hotspot subnet
-        iifname "${net.wifiInterface}" udp dport { 67, 53 } accept
-        iifname "${net.wifiInterface}" ip saddr ${net.hotspotCidr} tcp dport { 22, 53, 80 } accept
-
+        ${lib.optionalString ampberry.device.wifi ''
+          # Onboarding hotspot on ${net.wifiInterface}: DHCP DISCOVER arrives from 0.0.0.0 (no source filter),
+          # DNS + captive web UI + SSH only from the hotspot subnet
+          iifname "${net.wifiInterface}" udp dport { 67, 53 } accept
+          iifname "${net.wifiInterface}" ip saddr ${net.hotspotCidr} tcp dport { 22, 53, 80 } accept
+        ''}
         counter comment "dropped"
       }
 
