@@ -46,8 +46,10 @@ if [ "$GENERIC" != 1 ]; then
 	[ -s build/network-config.device ] && cp build/network-config.device build/network-config # byte-identical to the running device
 	cp build/user-data build/network-config build/meta-data "$PG/stage-ampberry/02-cloud-init/files/"
 fi
-# the flake source exactly as Nix sees it (git-filtered: no build/, no secrets, no .git)
-SRC="$(nix flake metadata --json . | python3 -c 'import json,sys; print(json.load(sys.stdin)["path"])')"
+# the flake source exactly as Nix sees it (git-filtered: no build/, no secrets, no .git).
+# `nix flake prefetch` always yields the store copy; `metadata` has no "path" with lazy trees.
+SRC="$(nix flake prefetch --json . | python3 -c 'import json,sys; print(json.load(sys.stdin)["storePath"])')"
+[ -f "$SRC/flake.nix" ] || { echo "could not get the flake's store copy ($SRC)" >&2; exit 1; }
 rm -rf "$PG/stage-ampberry/03-flake/files/ampberry"
 cp -R "$SRC/" "$PG/stage-ampberry/03-flake/files/ampberry" # the flake = the repo root
 chmod -R u+w "$PG/stage-ampberry/03-flake/files/ampberry"
