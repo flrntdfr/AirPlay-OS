@@ -3,10 +3,10 @@
 source "https://rubygems.org"
 
 # Minimal Rails: no ActiveRecord, no mailers, no Action Cable.
-gem "railties", "~> 7.2.3"
-gem "actionpack", "~> 7.2.3"
-gem "actionview", "~> 7.2.3"
-gem "activesupport", "~> 7.2.3"
+gem "railties", "~> 8.1.4"
+gem "actionpack", "~> 8.1.4"
+gem "actionview", "~> 8.1.4"
+gem "activesupport", "~> 8.1.4"
 gem "propshaft", "~> 1.1"
 gem "puma", "~> 6.4"
 
